@@ -1,16 +1,35 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
+	redisstore "niko1ay-pr/url-shrtnr/internal/storage/redisstore"
 	"niko1ay-pr/url-shrtnr/utils"
-	"time"
-
-	redis "github.com/go-redis/redis/v8"
+	"os"
 )
 
+type Server struct {
+	db Storage
+}
+
+func NewServer(db Storage) *Server {
+	return &Server{db}
+}
+
+type Storage interface {
+	Save(string) error
+	Get(string) (string, error)
+}
+
 func main() {
+
+	storage, err := redisstore.New()
+	if err != nil {
+		fmt.Println("Error creating Redis store:", err)
+		os.Exit(1)
+	}
+
+	_ = storage
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("It's URL shortener"))
@@ -26,28 +45,7 @@ func main() {
 		fmt.Println("Generated shortened URL: ", fullShortenURL)
 	})
 
-	fmt.Println("Server running on port :8080")
+	fmt.Println("Server running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
-
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	//err := client.Set(ctx, "key", "value", 0).Err()
-	//if err != nil {
-	//panic(err)
-	//}
-
-	val, err := client.Get(ctx, "key").Result()
-
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(val) // Output: valuE
 
 }
