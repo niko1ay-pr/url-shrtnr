@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"niko1ay-pr/url-shrtnr/internal/config"
 	redisstore "niko1ay-pr/url-shrtnr/internal/storage/redisstore"
 	"niko1ay-pr/url-shrtnr/utils"
 	"os"
@@ -22,8 +23,9 @@ func main() {
 	log := setupLogger(env) // TODO: should get env from config file
 	log.Info("Starting URL shortener service", slog.String("env", env))
 	log.Debug("Debug messages are not shown in the logs")
-	log.Info("Info messages are shown in the logs")
-	log.Error("Error messages are shown in the logs")
+
+	config := config.MustLoad()
+	log.Info("Config loaded:", "config", config)
 
 	storage, err := redisstore.New()
 	if err != nil {
