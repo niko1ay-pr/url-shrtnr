@@ -25,3 +25,12 @@ func New() (*Storage, error) {
 	}
 	return &Storage{db: db}, nil
 }
+
+func (s *Storage) SaveURL(urlToSave string, alias string) error {
+	const op = "storage.redisstore.SaveURL"
+	err := s.db.Set(context.Background(), urlToSave, alias, 0).Err()
+	if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+	return nil
+}

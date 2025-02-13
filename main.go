@@ -2,26 +2,28 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	redisstore "niko1ay-pr/url-shrtnr/internal/storage/redisstore"
 	"niko1ay-pr/url-shrtnr/utils"
 	"os"
 )
 
-type Server struct {
-	db Storage
-}
-
-func NewServer(db Storage) *Server {
-	return &Server{db}
-}
-
-type Storage interface {
-	Save(string) error
-	Get(string) (string, error)
-}
+const (
+	envLocal = "local"
+	envDev   = "dev"
+	envProd  = "prod"
+)
 
 func main() {
+
+	env := envLocal
+
+	log := setupLogger(env) // TODO: should get env from config file
+	log.Info("Starting URL shortener service", slog.String("env", env))
+	log.Debug("Debug messages are not shown in the logs")
+	log.Info("Info messages are shown in the logs")
+	log.Error("Error messages are shown in the logs")
 
 	storage, err := redisstore.New()
 	if err != nil {
@@ -48,4 +50,20 @@ func main() {
 	fmt.Println("Server running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
 
+}
+
+func setupLogger(env string) *slog.Logger {
+
+	var log *slog.Logger
+
+	switch env {
+	case envLocal:
+		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case envDev:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	case envProd:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	}
+
+	return log
 }
