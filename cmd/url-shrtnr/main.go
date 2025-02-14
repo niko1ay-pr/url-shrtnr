@@ -18,14 +18,11 @@ const (
 
 func main() {
 
-	env := envLocal
-
-	log := setupLogger(env) // TODO: should get env from config file
-	log.Info("Starting URL shortener service", slog.String("env", env))
-	log.Debug("Debug messages are not shown in the logs")
-
 	config := config.MustLoad()
-	log.Info("Config loaded:", "config", config)
+
+	log := setupLogger(config.Env)
+	log.Info("Starting URL shortener service", slog.String("env", config.Env))
+	log.Debug("Debug messages are shown in the logs")
 
 	storage, err := redisstore.New()
 	if err != nil {
@@ -62,7 +59,7 @@ func setupLogger(env string) *slog.Logger {
 	case envLocal:
 		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envDev:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}

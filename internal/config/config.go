@@ -9,8 +9,8 @@ import (
 )
 
 type Config struct {
-	Env  string `yaml:"env" env-default:"local"`
-	Port int    `yaml:"port" default:"8080"`
+	Env        string     `yaml:"env" env-default:"local"`
+	HttpServer HTTPServer `yaml:"http-server"`
 }
 
 type HTTPServer struct {

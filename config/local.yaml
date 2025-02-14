@@ -1,4 +1,4 @@
-env: "local" #local, dev, prod
+env: "dev" #local, dev, prod
 
 http_server:
   address: "localhost:8080"
