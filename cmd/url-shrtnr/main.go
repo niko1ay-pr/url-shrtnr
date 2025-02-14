@@ -5,7 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
-	redisstore "niko1ay-pr/url-shrtnr/internal/storage/redisstore"
+	sl "niko1ay-pr/url-shrtnr/internal/lib/logger"
+	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
 	"niko1ay-pr/url-shrtnr/utils"
 	"os"
 )
@@ -24,9 +25,9 @@ func main() {
 	log.Info("Starting URL shortener service", slog.String("env", config.Env))
 	log.Debug("Debug messages are shown in the logs")
 
-	storage, err := redisstore.New()
+	storage, err := sqlite.New(config.StoragePath)
 	if err != nil {
-		log.Error("Error creating Redis store:", slog.Attr{Key: "error", Value: slog.StringValue(err.Error())})
+		log.Error("Error storage init:", sl.Err(err))
 		os.Exit(1)
 	}
 

@@ -5,6 +5,7 @@ go 1.23.6
 require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/ilyakaznacheev/cleanenv v1.5.0
+	github.com/mattn/go-sqlite3 v1.14.24
 )
 
 require (

@@ -3,6 +3,7 @@ package redisstore
 import (
 	"context"
 	"fmt"
+	"niko1ay-pr/url-shrtnr/internal/storage"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -28,9 +29,29 @@ func New() (*Storage, error) {
 
 func (s *Storage) SaveURL(urlToSave string, alias string) error {
 	const op = "storage.redisstore.SaveURL"
-	err := s.db.Set(context.Background(), urlToSave, alias, 0).Err()
+
+	_, err := s.db.Get(context.Background(), urlToSave).Result()
+	if err == redis.Nil {
+		return fmt.Errorf("%s: %v", op, storage.ErrUrlExists)
+	} else if err != nil {
+		return fmt.Errorf("%s: %v", op, err)
+	}
+
+	err = s.db.Set(context.Background(), urlToSave, alias, 0).Err()
 	if err != nil {
 		return fmt.Errorf("%s: %v", op, err)
 	}
+
 	return nil
+}
+
+func (s *Storage) GetURL(urlToGet string) (string, error) {
+	const op = "storage.redisstore.GetURL"
+	url, err := s.db.Get(context.Background(), urlToGet).Result()
+	if err == redis.Nil {
+		return "", fmt.Errorf("%s: %v", op, storage.ErrUrlNotFound)
+	} else if err != nil {
+		return "", fmt.Errorf("%s: %v", op, err)
+	}
+	return url, nil
 }
