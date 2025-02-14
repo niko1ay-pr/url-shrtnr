@@ -26,7 +26,7 @@ func main() {
 
 	storage, err := redisstore.New()
 	if err != nil {
-		fmt.Println("Error creating Redis store:", err)
+		log.Error("Error creating Redis store:", slog.Attr{Key: "error", Value: slog.StringValue(err.Error())})
 		os.Exit(1)
 	}
 
