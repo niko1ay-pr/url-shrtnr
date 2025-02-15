@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
-	sl "niko1ay-pr/url-shrtnr/internal/lib/logger"
+	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
 	"niko1ay-pr/url-shrtnr/utils"
 	"os"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/niko1ay-pr/prettyslog"
 )
 
 const (
@@ -67,11 +68,11 @@ func setupLogger(env string) *slog.Logger {
 
 	switch env {
 	case envLocal:
-		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envDev:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 
 	return log
