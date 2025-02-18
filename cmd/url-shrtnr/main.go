@@ -2,7 +2,9 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
@@ -40,6 +42,9 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
+	router.Post("/url", save.New(log, storage))
+
+	http.ListenAndServe(config.HttpServer.Address, router)
 }
 
 func setupLogger(env string) *slog.Logger {
