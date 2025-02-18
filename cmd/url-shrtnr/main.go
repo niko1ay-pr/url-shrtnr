@@ -68,11 +68,11 @@ func setupLogger(env string) *slog.Logger {
 
 	switch env {
 	case envLocal:
-		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug}))
+		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug})) // use pretty log formatting for local environment
 	case envDev:
-		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelDebug}))
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
-		log = slog.New(prettyslog.NewHandler(&slog.HandlerOptions{Level: slog.LevelInfo}))
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 
 	return log
