@@ -81,7 +81,9 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		}
 		if err != nil {
 			log.Error("failed to store url", sl.Err(err))
-			render.JSON(w, r, response.Error("faired to store url"))
+			render.JSON(w, r, response.Error("failed to store url"))
+
+			return
 		}
 
 		log.Info("url added", slog.String("url", req.URL), slog.String("alias", alias))

@@ -2,6 +2,7 @@ package save_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -45,13 +46,13 @@ func TestSaveHandler(t *testing.T) {
 			url:     "invalid.url",
 			respErr: "field URL is not a valid URL",
 		},
-		// {
-		// 	name:    "SaveURL error",
-		// 	alias:   "some_valid_alias",
-		// 	url:     "https://google.com",
-		// 	respErr: "failed to store url",
-		// 	mockErr: errors.New("unexpected error"),
-		// },
+		{
+			name:    "SaveURL error",
+			alias:   "some_valid_alias",
+			url:     "https://google.com",
+			respErr: "failed to store url",
+			mockErr: errors.New("unexpected error"),
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
