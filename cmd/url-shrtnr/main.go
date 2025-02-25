@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
@@ -43,6 +44,8 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Post("/url", save.New(log, storage))
+	router.Get("/{alias}",
+		redirect.New(log, storage))
 
 	http.ListenAndServe(config.HttpServer.Address, router)
 }
