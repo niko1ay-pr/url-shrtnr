@@ -9,6 +9,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save/mocks"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
+	"niko1ay-pr/url-shrtnr/internal/storage"
 	"strings"
 	"testing"
 
@@ -52,6 +53,13 @@ func TestSaveHandler(t *testing.T) {
 			url:     "https://google.com",
 			respErr: "failed to store url",
 			mockErr: errors.New("unexpected error"),
+		},
+		{
+			name:    "Url already exists",
+			alias:   "any_alias",
+			url:     "https://google.com",
+			respErr: "url already exists",
+			mockErr: storage.ErrUrlExists,
 		},
 	}
 	for _, tc := range cases {
