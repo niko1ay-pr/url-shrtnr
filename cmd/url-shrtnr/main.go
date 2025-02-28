@@ -37,8 +37,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = storage
-
 	router := chi.NewRouter()
 	router.Use(mwlogger.New(log))
 	router.Use(middleware.Recoverer)
