@@ -15,8 +15,6 @@ import (
 type Request struct {
 	Alias string `json:"alias" validate:"required, alias"`
 }
-type Response struct {
-}
 
 type URLGetter interface {
 	GetURL(alias string) (string, error)

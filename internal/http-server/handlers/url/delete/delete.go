@@ -12,10 +12,8 @@ import (
 	"github.com/go-chi/render"
 )
 
-type Request struct {
-}
-
 type Response struct {
+	response.Response
 }
 
 type UrlDeleter interface {
@@ -39,8 +37,19 @@ func New(log *slog.Logger, urlDeleter UrlDeleter) http.HandlerFunc {
 
 		log.Info("received alias", slog.String("alias", alias))
 
-		// TODO: delete url from storage
+		err := urlDeleter.DeleteURL(alias)
+		if err == storage.ErrUrlNotFound {
+			log.Info("url not found", slog.String("alias", alias))
+			render.JSON(w, r, response.Error("url not found"))
 
-		render.JSON(w, r, response.Ok())
+			return
+		}
+		if err != nil {
+			log.Error("failed to delete url", slog.String("alias", alias), sl.Err(err))
+			render.JSON(w, r, response.Error("internal error"))
+
+			return
+		}
+		render.JSON(w, r, Response{Response: response.Ok()})
 	}
 }
