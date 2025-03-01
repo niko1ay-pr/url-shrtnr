@@ -16,11 +16,12 @@ type Response struct {
 	response.Response
 }
 
-type UrlDeleter interface {
+//go:generate go run github.com/vektra/mockery/v2@latest --name=URLDeleter
+type URLDeleter interface {
 	DeleteURL(string) error
 }
 
-func New(log *slog.Logger, urlDeleter UrlDeleter) http.HandlerFunc {
+func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.delete.New"
 
@@ -30,7 +31,7 @@ func New(log *slog.Logger, urlDeleter UrlDeleter) http.HandlerFunc {
 		alias := chi.URLParam(r, "alias")
 		if alias == "" {
 			log.Info("not found", sl.Err(storage.ErrUrlNotFound))
-			render.JSON(w, r, "url not found")
+			render.JSON(w, r, response.Error("url not found"))
 
 			return
 		}
@@ -38,6 +39,7 @@ func New(log *slog.Logger, urlDeleter UrlDeleter) http.HandlerFunc {
 		log.Info("received alias", slog.String("alias", alias))
 
 		err := urlDeleter.DeleteURL(alias)
+
 		if err == storage.ErrUrlNotFound {
 			log.Info("url not found", slog.String("alias", alias))
 			render.JSON(w, r, response.Error("url not found"))
