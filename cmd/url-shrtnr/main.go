@@ -32,6 +32,7 @@ func main() {
 	log.Debug("Debug messages are shown in the logs")
 
 	storage, err := sqlite.New(config.StoragePath)
+
 	if err != nil {
 		log.Error("Error storage init:", sl.Err(err))
 		os.Exit(1)
@@ -42,10 +43,15 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	router.Post("/url", save.New(log, storage))
+	router.Route("/url", func(r chi.Router) {
+		// r.Use(middleware.BasicAuth("url-shrtnr", map[string]string{
+		// 	// config.HttpServer.User: config.HttpServer.Password,
+		// }))
+		r.Post("/", save.New(log, storage))
+		r.Delete("/{alias}", delete.New(log, storage))
+	})
 	router.Get("/url/{alias}",
 		redirect.New(log, storage))
-	router.Delete("/url/{alias}", delete.New(log, storage))
 
 	http.ListenAndServe(config.HttpServer.Address, router)
 }
