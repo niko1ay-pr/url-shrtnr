@@ -44,16 +44,16 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Route("/url", func(r chi.Router) {
-		// r.Use(middleware.BasicAuth("url-shrtnr", map[string]string{
-		// 	// config.HttpServer.User: config.HttpServer.Password,
-		// }))
+		r.Use(middleware.BasicAuth("url-shrtnr", map[string]string{
+			config.HTTPServer.User: config.HTTPServer.Password,
+		}))
 		r.Post("/", save.New(log, storage))
 		r.Delete("/{alias}", delete.New(log, storage))
 	})
 	router.Get("/url/{alias}",
 		redirect.New(log, storage))
 
-	http.ListenAndServe(config.HttpServer.Address, router)
+	http.ListenAndServe(config.HTTPServer.Address, router)
 }
 
 func setupLogger(env string) *slog.Logger {
