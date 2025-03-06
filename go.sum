@@ -81,6 +81,8 @@ github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWb
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/niko1ay-pr/prettyslog v0.0.0-20250215205445-a8df51730ff5 h1:d++6iQqqH+LGnYuP0AaXHPI+WoJJ74oJinfoU9UPi2Y=
 github.com/niko1ay-pr/prettyslog v0.0.0-20250215205445-a8df51730ff5/go.mod h1:u9Vf18/150bKNz2pUmxsn/s5dSx1wfvB0AKKCdYtJz0=
+github.com/niko1ay-pr/prettyslog v0.0.0-20250303162503-f8984d023100 h1:Kq9P/y7/QTq07CUiAoNt4WTXGoyHKbnDswK2SWg1YZ0=
+github.com/niko1ay-pr/prettyslog v0.0.0-20250303162503-f8984d023100/go.mod h1:u9Vf18/150bKNz2pUmxsn/s5dSx1wfvB0AKKCdYtJz0=
 github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=

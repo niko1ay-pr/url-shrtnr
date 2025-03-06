@@ -14,7 +14,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/mattn/go-sqlite3 v1.14.24
-	github.com/niko1ay-pr/prettyslog v0.0.0-20250215205445-a8df51730ff5
+	github.com/niko1ay-pr/prettyslog v0.0.0-20250303162503-f8984d023100
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 )
