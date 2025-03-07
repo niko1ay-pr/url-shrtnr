@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
@@ -11,6 +13,8 @@ import (
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -53,7 +57,37 @@ func main() {
 	router.Get("/url/{alias}",
 		redirect.New(log, storage))
 
-	http.ListenAndServe(config.HTTPServer.Address, router)
+	shutdown, done := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	defer done()
+
+	s := http.Server{
+		Handler:     router,
+		Addr:        config.HTTPServer.Address,
+		IdleTimeout: config.IdleTimeout,
+	}
+
+	ctx, close := context.WithTimeout(context.Background(), config.Timeout)
+	defer close()
+	go func() {
+		err = s.ListenAndServe()
+		fmt.Printf("ListenAndServe err: %v\n", err)
+		if err != nil && err != http.ErrServerClosed {
+			log.Error("Server error: ", sl.Err(err))
+			os.Exit(1)
+		}
+
+	}()
+	for {
+		select {
+		case <-shutdown.Done():
+			fmt.Println("context.Done() invoked")
+			err = s.Shutdown(ctx)
+			if err != nil {
+				log.Error("Shutdown err:", sl.Err(err))
+			}
+			os.Exit(0)
+		}
+	}
 }
 
 func setupLogger(env string) *slog.Logger {
