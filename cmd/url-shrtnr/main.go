@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
@@ -70,7 +69,6 @@ func main() {
 	defer close()
 	go func() {
 		err = s.ListenAndServe()
-		fmt.Printf("ListenAndServe err: %v\n", err)
 		if err != nil && err != http.ErrServerClosed {
 			log.Error("Server error: ", sl.Err(err))
 			os.Exit(1)
@@ -80,11 +78,12 @@ func main() {
 	for {
 		select {
 		case <-shutdown.Done():
-			fmt.Println("context.Done() invoked")
+			log.Info("Server is shutting down...")
 			err = s.Shutdown(ctx)
 			if err != nil {
 				log.Error("Shutdown err:", sl.Err(err))
 			}
+			log.Info("Server stopped")
 			os.Exit(0)
 		}
 	}
