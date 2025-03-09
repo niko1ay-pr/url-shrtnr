@@ -34,7 +34,8 @@ func main() {
 	log.Info("Starting URL shortener service", slog.String("env", config.Env))
 	log.Debug("Debug messages are shown in the logs")
 
-	storage, err := sqlite.New(config.StoragePath)
+	ctx, close := context.WithTimeout(context.Background(), config.Timeout)
+	storage, err := sqlite.New(ctx, config.StoragePath)
 
 	if err != nil {
 		log.Error("Error storage init:", sl.Err(err))
@@ -50,11 +51,11 @@ func main() {
 		r.Use(middleware.BasicAuth("url-shrtnr", map[string]string{
 			config.HTTPServer.User: config.HTTPServer.Password,
 		}))
-		r.Post("/", save.New(log, storage))
-		r.Delete("/{alias}", delete.New(log, storage))
+		r.Post("/", save.New(ctx, log, storage))
+		r.Delete("/{alias}", delete.New(ctx, log, storage))
 	})
 	router.Get("/url/{alias}",
-		redirect.New(log, storage))
+		redirect.New(ctx, log, storage))
 
 	shutdown, done := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
 	defer done()
@@ -65,7 +66,6 @@ func main() {
 		IdleTimeout: config.IdleTimeout,
 	}
 
-	ctx, close := context.WithTimeout(context.Background(), config.Timeout)
 	defer close()
 	go func() {
 		err = s.ListenAndServe()
@@ -81,9 +81,9 @@ func main() {
 			log.Info("Server is shutting down...")
 			err = s.Shutdown(ctx)
 			if err != nil {
-				log.Error("Shutdown err:", sl.Err(err))
+				log.Error("Shutdown error: ", sl.Err(err))
 			}
-			log.Info("Server stopped")
+			log.Info("Server shut down gracefully")
 			os.Exit(0)
 		}
 	}
