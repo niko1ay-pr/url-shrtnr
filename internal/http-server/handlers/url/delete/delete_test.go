@@ -48,10 +48,10 @@ func TestDeleteHandler(t *testing.T) {
 			urlDeleterMock := mocks.NewURLDeleter(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlDeleterMock.On("DeleteURL", tc.alias).Return(tc.mockErr).Once()
+				urlDeleterMock.On("DeleteURL", context.Background(), tc.alias).Return(tc.mockErr).Once()
 			}
 
-			handler := deleteurl.New(sldiscard.NewDescardLogger(), urlDeleterMock)
+			handler := deleteurl.New(context.Background(), sldiscard.NewDescardLogger(), urlDeleterMock)
 
 			req, err := http.NewRequest(http.MethodDelete, "/url/{alias}", nil)
 			require.NoError(t, err)

@@ -1,6 +1,7 @@
 package save
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
@@ -18,7 +19,7 @@ const aliaslength = 6
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLSaver
 type URLSaver interface {
-	SaveURL(urlToSave string, alias string) error
+	SaveURL(ctx context.Context, string, alias string) error
 }
 
 type Request struct {
@@ -31,7 +32,7 @@ type Response struct {
 	Alias string `json:"alias,omitempty"`
 }
 
-func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.save.New"
 		log = log.With(
@@ -71,7 +72,7 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 			}
 		}
 
-		err = urlSaver.SaveURL(req.URL, alias)
+		err = urlSaver.SaveURL(ctx, req.URL, alias)
 		if err == storage.ErrUrlExists {
 			log.Info("url already exists", slog.String("url", req.URL))
 			render.JSON(w, r, response.Error("url already exists"))

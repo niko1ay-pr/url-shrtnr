@@ -1,6 +1,7 @@
 package delete
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
@@ -18,10 +19,10 @@ type Response struct {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLDeleter
 type URLDeleter interface {
-	DeleteURL(string) error
+	DeleteURL(context.Context, string) error
 }
 
-func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.delete.New"
 
@@ -38,7 +39,7 @@ func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 
 		log.Info("received alias", slog.String("alias", alias))
 
-		err := urlDeleter.DeleteURL(alias)
+		err := urlDeleter.DeleteURL(ctx, alias)
 
 		if err == storage.ErrUrlNotFound {
 			log.Info("url not found", slog.String("alias", alias))

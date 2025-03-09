@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -13,7 +14,7 @@ type Storage struct {
 	db *sql.DB
 }
 
-func New(storagePath string) (*Storage, error) {
+func New(ctx context.Context, storagePath string) (*Storage, error) {
 	op := "sqlite.sqlite.New"
 
 	db, err := sql.Open("sqlite3", storagePath)
@@ -21,7 +22,7 @@ func New(storagePath string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	stmt, err := db.Prepare(`CREATE TABLE IF NOT EXISTS url (id INTEGER PRIMARY KEY,
+	stmt, err := db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS url (id INTEGER PRIMARY KEY,
 	alias TEXT NOT NULL UNIQUE,
 	url TEXT NOT NULL);
 	CREATE INDEX IF NOT EXISTS alias_idx ON url (alias);
@@ -31,7 +32,7 @@ func New(storagePath string) (*Storage, error) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec()
+	_, err = stmt.ExecContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -39,16 +40,16 @@ func New(storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveURL(urlToSave string, alias string) error {
+func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string) error {
 	op := "storage.sqlite.SaveURL"
 
-	stmt, err := s.db.Prepare(`INSERT INTO url (alias, url) VALUES (?, ?);`)
+	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO url (alias, url) VALUES (?, ?);`)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(alias, urlToSave)
+	_, err = stmt.ExecContext(ctx, alias, urlToSave)
 	if err != nil {
 		if sqlErr, ok := err.(sqlite3.Error); ok && sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique {
 			return fmt.Errorf("%s: %w", op, storage.ErrUrlExists)
@@ -58,17 +59,17 @@ func (s *Storage) SaveURL(urlToSave string, alias string) error {
 	return nil
 }
 
-func (s *Storage) GetURL(alias string) (string, error) {
+func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	op := "storage.sqlite.GetURL"
 
-	stmt, err := s.db.Prepare("SELECT url FROM url WHERE alias = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "SELECT url FROM url WHERE alias = ?;")
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
 	var resUrl string
-	err = stmt.QueryRow(alias).Scan(&resUrl)
+	err = stmt.QueryRowContext(ctx, alias).Scan(&resUrl)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", storage.ErrUrlNotFound
@@ -78,7 +79,7 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	return resUrl, nil
 }
 
-func (s *Storage) DeleteURL(alias string) error {
+func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 	op := "storage.sqlite.DeleteURL"
 
 	var exists bool

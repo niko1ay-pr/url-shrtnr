@@ -1,6 +1,7 @@
 package redirect_test
 
 import (
+	"context"
 	"net/http/httptest"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect/mocks"
@@ -36,11 +37,11 @@ func TestRedirectHandler(t *testing.T) {
 			urlGetterMock := mocks.NewURLGetter(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlGetterMock.On("GetURL", tc.alias).
+				urlGetterMock.On("GetURL", context.Background(), tc.alias).
 					Return(tc.url, tc.mockErr).Once()
 			}
 
-			handler := redirect.New(sldiscard.NewDescardLogger(), urlGetterMock)
+			handler := redirect.New(context.Background(), sldiscard.NewDescardLogger(), urlGetterMock)
 
 			r := chi.NewRouter()
 			r.Get("/url/{alias}", handler)

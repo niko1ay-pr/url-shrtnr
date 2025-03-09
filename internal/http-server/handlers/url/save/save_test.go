@@ -1,6 +1,7 @@
 package save_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -70,11 +71,11 @@ func TestSaveHandler(t *testing.T) {
 			urlSaverMock := mocks.NewURLSaver(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlSaverMock.On("SaveURL", tc.url, mock.AnythingOfType("string")).
+				urlSaverMock.On("SaveURL", context.Background(), tc.url, mock.AnythingOfType("string")).
 					Return(tc.mockErr).Once()
 			}
 
-			handler := save.New(sldiscard.NewDescardLogger(), urlSaverMock)
+			handler := save.New(context.Background(), sldiscard.NewDescardLogger(), urlSaverMock)
 
 			input := fmt.Sprintf(`{"url": "%s", "alias": "%s"}`, tc.url, tc.alias)
 
