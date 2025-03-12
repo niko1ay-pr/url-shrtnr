@@ -34,7 +34,9 @@ func main() {
 	log.Info("Starting URL shortener service", slog.String("env", config.Env))
 	log.Debug("Debug messages are shown in the logs")
 
-	ctx, close := context.WithTimeout(context.Background(), config.Timeout)
+	ctx, done := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	defer done()
+
 	storage, err := sqlite.New(ctx, config.StoragePath)
 
 	if err != nil {
@@ -57,16 +59,13 @@ func main() {
 	router.Get("/url/{alias}",
 		redirect.New(ctx, log, storage))
 
-	shutdown, done := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
-	defer done()
-
 	s := http.Server{
 		Handler:     router,
 		Addr:        config.HTTPServer.Address,
 		IdleTimeout: config.IdleTimeout,
+		ReadTimeout: config.Timeout,
 	}
 
-	defer close()
 	go func() {
 		err = s.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
@@ -77,7 +76,7 @@ func main() {
 	}()
 	for {
 		select {
-		case <-shutdown.Done():
+		case <-ctx.Done():
 			log.Info("Server is shutting down...")
 			err = s.Shutdown(ctx)
 			if err != nil {

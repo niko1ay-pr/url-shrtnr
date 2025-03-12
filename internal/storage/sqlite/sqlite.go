@@ -83,7 +83,7 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 	op := "storage.sqlite.DeleteURL"
 
 	var exists bool
-	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -91,13 +91,13 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 		return storage.ErrUrlNotFound
 	}
 
-	stmt, err := s.db.Prepare("DELETE FROM url WHERE alias = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "DELETE FROM url WHERE alias = ?;")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(alias)
+	_, err = stmt.ExecContext(ctx, alias)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
