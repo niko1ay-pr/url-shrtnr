@@ -26,7 +26,7 @@ func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.Hand
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.delete.New"
 
-		log.With(slog.String("op", op),
+		log = log.With(slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())))
 
 		alias := chi.URLParam(r, "alias")
@@ -53,6 +53,7 @@ func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.Hand
 
 			return
 		}
+		log.Info("url deleted", slog.String("alias", alias))
 		render.JSON(w, r, Response{Response: response.Ok()})
 	}
 }

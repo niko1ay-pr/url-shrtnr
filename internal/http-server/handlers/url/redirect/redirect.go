@@ -24,9 +24,9 @@ type URLGetter interface {
 
 func New(ctx context.Context, log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "http-server.handlers.url.get.New"
+		const op = "handlers.url.redirect.New"
 
-		log.With(slog.String("op", op), slog.String("request_id", middleware.GetReqID(r.Context())))
+		log = log.With(slog.String("op", op), slog.String("request_id", middleware.GetReqID(r.Context())))
 
 		alias := chi.URLParam(r, "alias")
 		if alias == "" {
@@ -51,7 +51,7 @@ func New(ctx context.Context, log *slog.Logger, urlGetter URLGetter) http.Handle
 			return
 		}
 
-		log.Info("url found", slog.String("url", url),
+		log.Info("url found. Redirecting.", slog.String("url", url),
 			slog.String("alias", alias))
 
 		http.Redirect(w, r, url, http.StatusFound)

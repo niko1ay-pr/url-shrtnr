@@ -47,6 +47,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(mwlogger.New(log))
 	router.Use(middleware.Recoverer)
+	router.Use(middleware.RequestID)
 	router.Use(middleware.URLFormat)
 
 	router.Route("/url", func(r chi.Router) {
