@@ -54,16 +54,21 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 			alias:    gofakeit.Word() + gofakeit.Word(),
 			user:     "admin",
 			password: "adminpass",
+		}, {
+			name:     "Empty alias",
+			url:      "https://google.com",
+			alias:    "",
+			user:     "admin",
+			password: "adminpass",
 		},
-		// TODO: Empty alias case
 
 		// TODO: Faulty case
 	}
 
+	t.Parallel()
 	for _, tc := range cases {
 		tc := tc
 
-		t.Parallel()
 		t.Run(tc.name, func(t *testing.T) {
 			u := url.URL{
 				Scheme: "http",
@@ -80,20 +85,20 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 				Client:   customClient,
 				Reporter: httpexpect.NewAssertReporter(t),
 			})
-			e.POST("/url").
+
+			resp := e.POST("/url").
 				WithJSON(save.Request{URL: tc.url, Alias: tc.alias}).
 				WithBasicAuth(tc.user, tc.password).
-				Expect().
-				Status(http.StatusOK).
-				JSON().Object().
-				HasValue("alias", tc.alias)
+				Expect()
+			alias := resp.Status(http.StatusOK).
+				JSON().Object().Value("alias").String().NotEmpty().Raw()
 
-			e.GET("/url/"+tc.alias).
+			e.GET("/url/"+alias).
 				WithBasicAuth(tc.user, tc.password).
 				Expect().
 				Status(http.StatusFound).Header("Location").NotEmpty()
 
-			e.DELETE("/url/"+tc.alias).WithBasicAuth(tc.user, tc.password).
+			e.DELETE("/url/"+alias).WithBasicAuth(tc.user, tc.password).
 				Expect().
 				Status(http.StatusOK).
 				JSON().Object().
