@@ -69,8 +69,17 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 				Scheme: "http",
 				Host:   host,
 			}
+			customClient := &http.Client{
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
 
-			e := httpexpect.Default(t, u.String())
+				},
+			}
+			e := httpexpect.WithConfig(httpexpect.Config{
+				BaseURL:  u.String(),
+				Client:   customClient,
+				Reporter: httpexpect.NewAssertReporter(t),
+			})
 			e.POST("/url").
 				WithJSON(save.Request{URL: tc.url, Alias: tc.alias}).
 				WithBasicAuth(tc.user, tc.password).
@@ -82,8 +91,13 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 			e.GET("/url/"+tc.alias).
 				WithBasicAuth(tc.user, tc.password).
 				Expect().
-				// Status(http.StatusFound).
-				Status(http.StatusOK).Header("Location").NotEmpty()
+				Status(http.StatusFound).Header("Location").NotEmpty()
+
+			e.DELETE("/url/"+tc.alias).WithBasicAuth(tc.user, tc.password).
+				Expect().
+				Status(http.StatusOK).
+				JSON().Object().
+				HasValue("status", "Ok")
 		})
 
 	}
