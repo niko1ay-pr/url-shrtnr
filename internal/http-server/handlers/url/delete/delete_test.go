@@ -16,29 +16,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var cases = []struct {
+	name    string
+	alias   string
+	respErr string
+	mockErr error
+}{
+	{
+		name:  "Success",
+		alias: "validalias",
+	},
+	{
+		name:    "Empty alias",
+		alias:   "",
+		respErr: "url not found",
+	},
+	{
+		name:    "Internal error",
+		alias:   "validalias",
+		respErr: "internal error",
+		mockErr: errors.New(""),
+	},
+}
+
 func TestDeleteHandler(t *testing.T) {
-	cases := []struct {
-		name    string
-		alias   string
-		respErr string
-		mockErr error
-	}{
-		{
-			name:  "Success",
-			alias: "validalias",
-		},
-		{
-			name:    "Empty alias",
-			alias:   "",
-			respErr: "url not found",
-		},
-		{
-			name:    "Internal error",
-			alias:   "validalias",
-			respErr: "internal error",
-			mockErr: errors.New(""),
-		},
-	}
 
 	for _, tc := range cases {
 		tc := tc

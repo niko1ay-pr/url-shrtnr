@@ -18,51 +18,52 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var cases = []struct {
+	name    string
+	alias   string
+	url     string
+	respErr string
+	mockErr error
+}{
+	{
+		name:  "Success",
+		alias: "test_alias",
+		url:   "https://google.com",
+	},
+	{
+		name:  "Empty alias",
+		alias: "",
+		url:   "https://google.com",
+	},
+	{
+		name:    "Empty URL",
+		alias:   "test_empty_url",
+		url:     "",
+		respErr: "field URL is required",
+	},
+	{
+		name:    "Invalid URL",
+		alias:   "invalid_ulr",
+		url:     "invalid.url",
+		respErr: "field URL is not a valid URL",
+	},
+	{
+		name:    "SaveURL error",
+		alias:   "some_valid_alias",
+		url:     "https://google.com",
+		respErr: "failed to store url",
+		mockErr: errors.New("unexpected error"),
+	},
+	{
+		name:    "Url already exists",
+		alias:   "any_alias",
+		url:     "https://google.com",
+		respErr: "url already exists",
+		mockErr: storage.ErrUrlExists,
+	},
+}
+
 func TestSaveHandler(t *testing.T) {
-	cases := []struct {
-		name    string
-		alias   string
-		url     string
-		respErr string
-		mockErr error
-	}{
-		{
-			name:  "Success",
-			alias: "test_alias",
-			url:   "https://google.com",
-		},
-		{
-			name:  "Empty alias",
-			alias: "",
-			url:   "https://google.com",
-		},
-		{
-			name:    "Empty URL",
-			alias:   "test_empty_url",
-			url:     "",
-			respErr: "field URL is required",
-		},
-		{
-			name:    "Invalid URL",
-			alias:   "invalid_ulr",
-			url:     "invalid.url",
-			respErr: "field URL is not a valid URL",
-		},
-		{
-			name:    "SaveURL error",
-			alias:   "some_valid_alias",
-			url:     "https://google.com",
-			respErr: "failed to store url",
-			mockErr: errors.New("unexpected error"),
-		},
-		{
-			name:    "Url already exists",
-			alias:   "any_alias",
-			url:     "https://google.com",
-			respErr: "url already exists",
-			mockErr: storage.ErrUrlExists,
-		},
-	}
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
