@@ -8,6 +8,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/delete"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/update"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
@@ -56,6 +57,7 @@ func main() {
 		}))
 		r.Post("/", save.New(ctx, log, storage))
 		r.Delete("/{alias}", delete.New(ctx, log, storage))
+		r.Put("/{alias}", update.New(ctx, log, storage))
 	})
 	router.Get("/url/{alias}",
 		redirect.New(ctx, log, storage))

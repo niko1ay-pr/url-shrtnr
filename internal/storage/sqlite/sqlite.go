@@ -36,7 +36,6 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	return &Storage{db: db}, nil
 }
 
@@ -101,6 +100,9 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+	return nil
+}
 
+func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, url string) error {
 	return nil
 }
