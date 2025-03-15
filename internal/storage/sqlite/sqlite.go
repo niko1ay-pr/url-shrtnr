@@ -104,5 +104,26 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 }
 
 func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, url string) error {
+	op := "storage.sqlite.UpdateURL"
+
+	var exists bool
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return storage.ErrUrlNotFound
+	}
+
+	stmt, err := s.db.PrepareContext(ctx, "UPDATE url SET alias = ?, url = ? WHERE alias = ?;")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, newAlias, url, alias)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	return nil
 }

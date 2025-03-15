@@ -78,7 +78,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 			}
 		}
 
-		err = urlUpdater.UpdateURL(ctx, newURL, alias, newAlias)
+		err = urlUpdater.UpdateURL(ctx, alias, newAlias, newURL)
 		if err == storage.ErrUrlNotFound {
 			log.Info("url not found", slog.String("alias", alias))
 			render.JSON(w, r, response.Error("url not found"))
