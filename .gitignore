@@ -25,5 +25,6 @@ go.work.sum
 .env
 
 .vscode/
+.zed/
 .DS_Store
 storage/

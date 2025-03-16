@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/all"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/delete"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
@@ -55,10 +56,11 @@ func main() {
 		r.Use(middleware.BasicAuth("url-shrtnr", map[string]string{
 			config.HTTPServer.User: config.HTTPServer.Password,
 		}))
-		r.Post("/", save.New(ctx, log, storage))
 		r.Delete("/{alias}", delete.New(ctx, log, storage))
+		r.Post("/", save.New(ctx, log, storage))
 		r.Put("/{alias}", update.New(ctx, log, storage))
 	})
+	router.Get("/urls", all.New(ctx, log, storage))
 	router.Get("/url/{alias}",
 		redirect.New(ctx, log, storage))
 

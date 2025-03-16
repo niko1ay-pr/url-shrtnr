@@ -14,8 +14,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// TODO: move to config
-
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLSaver
 type URLSaver interface {
 	SaveURL(ctx context.Context, url string, alias string) error

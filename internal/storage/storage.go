@@ -6,6 +6,11 @@ const (
 	AliasLength = 6
 )
 
+type UrlEntity struct {
+	Alias string `json:"alias,required"`
+	Url   string `json:"url,required"`
+}
+
 var (
 	ErrUrlNotFound = errors.New("url not found")
 	ErrUrlExists   = errors.New("url already exists")

@@ -127,3 +127,32 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 	}
 	return nil
 }
+
+func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
+	const op = "storage.sqlite.GetAll"
+	query := "SELECT alias, url FROM url"
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var entities []storage.UrlEntity
+
+	for rows.Next() {
+		var alias, url string
+
+		if err := rows.Scan(&alias, &url); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		entities = append(entities, storage.UrlEntity{Alias: alias, Url: url})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return entities, nil
+}

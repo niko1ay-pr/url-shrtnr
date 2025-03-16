@@ -13,10 +13,6 @@ import (
 	"github.com/go-chi/render"
 )
 
-type Request struct {
-	Alias string `json:"alias" validate:"required, alias"`
-}
-
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLGetter
 type URLGetter interface {
 	GetURL(ctx context.Context, alias string) (string, error)
