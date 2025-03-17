@@ -19,14 +19,17 @@ type URLSaver interface {
 	SaveURL(ctx context.Context, url string, alias string) error
 }
 
-type Request struct {
+type Entity struct {
 	URL   string `json:"url" validate:"required,url"`
 	Alias string `json:"alias,omitempty"`
+}
+type Request struct {
+	Entities []Entity `json:"entities"`
 }
 
 type Response struct {
 	response.Response
-	Alias string `json:"alias,omitempty"`
+	Entities []Entity `json:"entities"`
 }
 
 func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
@@ -55,36 +58,38 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
-		alias := req.Alias
-		if alias == "" {
-			// TODO: check if genereted alias is already exists
-			alias, err = random.NewRandomString(storage.AliasLength)
+
+		var resp Response
+		for _, entity := range req.Entities {
+			alias := entity.Alias
+			if alias == "" {
+				// TODO: check if genereted alias is already exists
+				alias, err = random.NewRandomString(storage.AliasLength)
+				if err != nil {
+					log.Error("failed to generate new alias", sl.Err(err))
+					render.JSON(w, r, response.Error("failed to generate new alias"))
+					return
+				}
+			}
+			err = urlSaver.SaveURL(ctx, entity.URL, alias)
+			if err == storage.ErrUrlExists {
+				log.Info("url already exists", slog.String("url", entity.URL))
+				render.JSON(w, r, response.Error("url already exists"))
+				return
+
+			}
 			if err != nil {
-				log.Error("failed to generate new alias", sl.Err(err))
-				render.JSON(w, r, response.Error("failed to generate new alias"))
+				log.Error("failed to store url", sl.Err(err))
+				render.JSON(w, r, response.Error("failed to store url"))
 				return
 			}
+			resp.Entities = append(resp.Entities, Entity{Alias: alias, URL: entity.URL})
+
+			log.Info("url added", slog.String("url", entity.URL), slog.String("alias", alias))
 		}
 
-		err = urlSaver.SaveURL(ctx, req.URL, alias)
-		if err == storage.ErrUrlExists {
-			log.Info("url already exists", slog.String("url", req.URL))
-			render.JSON(w, r, response.Error("url already exists"))
-			return
-
-		}
-		if err != nil {
-			log.Error("failed to store url", sl.Err(err))
-			render.JSON(w, r, response.Error("failed to store url"))
-			return
-		}
-
-		log.Info("url added", slog.String("url", req.URL), slog.String("alias", alias))
-
-		render.JSON(w, r, Response{
-			Response: response.Ok(),
-			Alias:    alias,
-		})
+		resp.Response = response.Ok()
+		render.JSON(w, r, resp)
 	}
 
 }
