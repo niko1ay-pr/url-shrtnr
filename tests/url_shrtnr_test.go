@@ -28,36 +28,56 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 		return
 	}
 
+	payload := save.Request{Entities: []save.Entity{
+		save.Entity{
+			URL:   gofakeit.URL(),
+			Alias: randStr},
+		save.Entity{
+			URL:   gofakeit.URL(),
+			Alias: "",
+		},
+	}}
+
 	e.POST("/url").
-		WithJSON(save.Request{URL: gofakeit.URL(),
-			Alias: randStr}).
+		WithJSON(payload).
 		WithBasicAuth("admin", "adminpass").
 		Expect().
 		Status(http.StatusOK).
 		JSON().Object().
-		ContainsKey("alias")
+		ContainsKey("entities")
 }
 
 func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 
 	cases := []struct {
 		name     string
-		url      string
-		alias    string
+		entities []save.Entity
 		user     string
 		password string
 		error    string
 	}{
 		{
-			name:     "Success workflow",
-			url:      "https://google.com",
-			alias:    gofakeit.Word() + gofakeit.Word(),
+			name: "Success workflow",
+			entities: []save.Entity{
+				{
+					URL:   "https://google.com",
+					Alias: gofakeit.Word() + gofakeit.Word(),
+				},
+				{
+					URL:   "https://yandex.ru",
+					Alias: gofakeit.Word() + gofakeit.Word(),
+				},
+			},
 			user:     "admin",
 			password: "adminpass",
 		}, {
-			name:     "Empty alias",
-			url:      "https://google.com",
-			alias:    "",
+			name: "Empty alias",
+			entities: []save.Entity{
+				{
+					URL:   "https://google.com",
+					Alias: "",
+				},
+			},
 			user:     "admin",
 			password: "adminpass",
 		},
@@ -86,13 +106,20 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 				Reporter: httpexpect.NewAssertReporter(t),
 			})
 
+			payload := save.Request{Entities: []save.Entity{}}
+			for _, entity := range tc.entities {
+				payload.Entities = append(payload.Entities, entity)
+			}
+
 			resp := e.POST("/url").
-				WithJSON(save.Request{URL: tc.url, Alias: tc.alias}).
+				WithJSON(payload).
 				WithBasicAuth(tc.user, tc.password).
 				Expect()
-			alias := resp.Status(http.StatusOK).
-				JSON().Object().Value("alias").String().NotEmpty().Raw()
+			entity := resp.Status(http.StatusOK).
+				JSON().Object().Value("entities").Array().First()
+			// JSON().Object().Value("alias").String().NotEmpty().Raw()
 
+			alias := entity.String().Raw()
 			e.GET("/url/"+alias).
 				WithBasicAuth(tc.user, tc.password).
 				Expect().
