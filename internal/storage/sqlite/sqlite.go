@@ -36,6 +36,23 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	stmt, err = db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON Users (email);
+	`)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 	return &Storage{db: db}, nil
 }
 
@@ -155,4 +172,30 @@ func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
 	}
 
 	return entities, nil
+}
+
+func (s *Storage) UserSave(ctx context.Context, email string, password string) error {
+	const op = "storage.sqlite.UserSave"
+
+	var exists bool
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?);", email).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if exists {
+		return storage.ErrUserExists
+	}
+
+	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO users (email, password) VALUES (?, ?);`)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, email, password)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }

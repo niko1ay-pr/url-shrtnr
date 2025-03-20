@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/auth/register"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/all"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/delete"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect"
@@ -63,6 +64,7 @@ func main() {
 	router.Get("/urls", all.New(ctx, log, storage))
 	router.Get("/url/{alias}",
 		redirect.New(ctx, log, storage))
+	router.Post("/users/register", register.New(ctx, log, storage))
 
 	s := http.Server{
 		Handler:     router,

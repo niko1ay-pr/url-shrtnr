@@ -23,7 +23,7 @@ type URLGetterAll interface {
 
 func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handler.url.all.New"
+		const op = "handlers.url.all.New"
 		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())))
