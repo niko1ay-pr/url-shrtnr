@@ -192,6 +192,7 @@ func (s *Storage) UserSave(ctx context.Context, email string, password string) e
 	}
 	defer stmt.Close()
 
+	// TODO: hash password
 	_, err = stmt.ExecContext(ctx, email, password)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
