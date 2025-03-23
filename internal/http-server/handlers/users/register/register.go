@@ -5,11 +5,13 @@ import (
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
+	"niko1ay-pr/url-shrtnr/internal/lib/hash"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/storage"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 )
 
 type Request struct {
@@ -22,9 +24,9 @@ type Response struct {
 	Email string `json:"email"`
 }
 
-//go:generate go run github.com/vektra/mockery/v2@latest --name=AuthRegisterer
+//go:generate go run github.com/vektra/mockery/v2@latest --name=UserSaver
 type UserSaver interface {
-	UserSave(context.Context, string, string) error
+	UserSave(context.Context, string, string) (int, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
@@ -40,7 +42,23 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			render.JSON(w, r, "failed decode request body")
 			return
 		}
-		err = userSaver.UserSave(ctx, req.Email, req.Password)
+		log.Debug("request body decoded", slog.Any("request", req))
+		err = validator.New().Struct(req)
+		if err != nil {
+			log.Error("invalid request", sl.Err(err))
+			validateErr := err.(validator.ValidationErrors)
+			render.JSON(w, r, response.ValidationError(validateErr))
+			return
+		}
+		//TODO: add personal generated salt for each password
+		hashedPass, err := hash.HashPassword(req.Password)
+		if err != nil {
+			log.Error("hashing password error", sl.Err(err))
+			render.JSON(w, r, response.Error("failed to register"))
+			return
+		}
+		// TODO: store salt near password
+		userId, err := userSaver.UserSave(ctx, req.Email, hashedPass)
 		if err == storage.ErrUrlExists {
 			log.Info("already exists", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register"))
@@ -51,6 +69,10 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			render.JSON(w, r, response.Error("failed to register"))
 			return
 		}
+
+		// TODO: use userId like "sub" claim in token
+		_ = userId
+		log.Info("user registered", slog.String("email", req.Email))
 		render.JSON(w, r, Response{Response: response.Ok(),
 			Email: req.Email,
 		})

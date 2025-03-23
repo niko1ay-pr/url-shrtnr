@@ -16,7 +16,7 @@ import (
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLSaver
 type URLSaver interface {
-	SaveURL(ctx context.Context, url string, alias string) error
+	SaveURL(ctx context.Context, url string, alias string, ownerId int) error
 }
 
 type Entity struct {
@@ -54,7 +54,6 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 		if err != nil {
 			log.Error("invalid request", sl.Err(err))
 			validateErr := err.(validator.ValidationErrors)
-
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -71,7 +70,9 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 					return
 				}
 			}
-			err = urlSaver.SaveURL(ctx, entity.URL, alias)
+			// TODO: owner_id reveice from header (bearer). Decode from JWT-token
+			ownerId := 0
+			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerId)
 			if err == storage.ErrUrlExists {
 				log.Info("url already exists", slog.String("url", entity.URL))
 				render.JSON(w, r, response.Error("url already exists"))

@@ -16,6 +16,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/niko1ay-pr/prettyslog v0.0.0-20250303162503-f8984d023100
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/crypto v0.33.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 )
 
@@ -57,7 +58,6 @@ require (
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	github.com/yudai/gojsondiff v1.0.0 // indirect
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

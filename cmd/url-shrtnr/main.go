@@ -11,6 +11,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/update"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register/login"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
@@ -62,9 +63,10 @@ func main() {
 		r.Put("/{alias}", update.New(ctx, log, storage))
 	})
 	router.Get("/urls", all.New(ctx, log, storage))
-	router.Get("/url/{alias}",
+	router.Get("/urls/{alias}",
 		redirect.New(ctx, log, storage))
 	router.Post("/users/register", register.New(ctx, log, storage))
+	router.Post("/users/login", login.New(ctx, log, storage))
 
 	s := http.Server{
 		Handler:     router,

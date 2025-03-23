@@ -22,10 +22,11 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	stmt, err := db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS url (id INTEGER PRIMARY KEY,
+	stmt, err := db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS urls (id INTEGER PRIMARY KEY,
 	alias TEXT NOT NULL UNIQUE,
-	url TEXT NOT NULL);
-	CREATE INDEX IF NOT EXISTS alias_idx ON url (alias);
+	url TEXT NOT NULL,
+	owner_id INTEGER REFERENCES users(id));
+	CREATE INDEX IF NOT EXISTS alias_idx ON urls (alias);
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -41,7 +42,7 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL);
-    CREATE INDEX IF NOT EXISTS idx_users_email ON Users (email);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 	`)
 
 	if err != nil {
@@ -56,7 +57,7 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string) error {
+func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, ownerID int) error {
 	op := "storage.sqlite.SaveURL"
 
 	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO url (alias, url) VALUES (?, ?);`)
@@ -174,29 +175,53 @@ func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
 	return entities, nil
 }
 
-func (s *Storage) UserSave(ctx context.Context, email string, password string) error {
+func (s *Storage) UserSave(ctx context.Context, email string, password string) (int, error) {
 	const op = "storage.sqlite.UserSave"
 
 	var exists bool
 	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?);", email).Scan(&exists)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	if exists {
-		return storage.ErrUserExists
+		return 0, storage.ErrUserExists
 	}
 
 	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO users (email, password) VALUES (?, ?);`)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	// TODO: hash password
-	_, err = stmt.ExecContext(ctx, email, password)
+	res, err := stmt.ExecContext(ctx, email, password)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+	return int(id), nil
+}
+
+func (s *Storage) GetUserHash(ctx context.Context, email string, password string) (int, string, error) {
+	const op = "storage.sqlite.GetUserHash"
+
+	stmt, err := s.db.PrepareContext(ctx, "SELECT id, password FROM users WHERE email = ?;")
+	if err != nil {
+		return 0, "", fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+
+	var userId int
+	var hashedPass string
+	err = stmt.QueryRowContext(ctx, email).Scan(&userId, &hashedPass)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, "", storage.ErrUserNotFound
+		}
+		return 0, "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return userId, hashedPass, nil
 }
