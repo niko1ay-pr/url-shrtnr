@@ -1,14 +1,17 @@
 package hash
 
 import (
+	"crypto/rand"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func HashPassword(password string) (string, error) {
+const SaltSize = 16
+
+func HashPassword(password string, salt string) (string, error) {
 	const op = "lib.hash.HashPassword"
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password+salt), bcrypt.DefaultCost)
 
 	if err != nil {
 		return "", fmt.Errorf("%s: %v", op, err)
@@ -27,4 +30,16 @@ func CheckPasswordHash(hashedPass string, password string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func RandomSalt(saltSize int) (string, error) {
+	const op = "lib.hash.RandomSalt"
+	var salt = make([]byte, saltSize)
+	_, err := rand.Read(salt[:])
+
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return string(salt), nil
 }

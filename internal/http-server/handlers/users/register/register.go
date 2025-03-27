@@ -26,7 +26,7 @@ type Response struct {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=UserSaver
 type UserSaver interface {
-	UserSave(context.Context, string, string) (int, error)
+	UserSave(context.Context, storage.UserModel) (int, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
@@ -50,15 +50,23 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
-		//TODO: add personal generated salt for each password
-		hashedPass, err := hash.HashPassword(req.Password)
+		//add personal generated salt for each password
+		salt, err := hash.RandomSalt(hash.SaltSize)
+		if err != nil {
+			log.Error("salt generation error", sl.Err(err))
+			render.JSON(w, r, response.Error("failed to register"))
+			return
+		}
+
+		hashedPass, err := hash.HashPassword(req.Password, salt)
 		if err != nil {
 			log.Error("hashing password error", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register"))
 			return
 		}
-		// TODO: store salt near password
-		userId, err := userSaver.UserSave(ctx, req.Email, hashedPass)
+		//store salt near password
+		userId, err := userSaver.UserSave(ctx, storage.UserModel{Email: req.Email,
+			Password: hashedPass, Salt: salt})
 		if err == storage.ErrUrlExists {
 			log.Info("already exists", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register"))

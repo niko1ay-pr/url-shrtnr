@@ -11,6 +11,13 @@ type UrlEntity struct {
 	Url   string `json:"url,required"`
 }
 
+type UserModel struct {
+	Id       int
+	Email    string
+	Password string
+	Salt     string
+}
+
 var (
 	ErrUrlNotFound  = errors.New("url not found")
 	ErrUrlExists    = errors.New("url already exists")

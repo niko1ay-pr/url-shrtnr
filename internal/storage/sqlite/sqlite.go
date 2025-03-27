@@ -41,7 +41,8 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 	stmt, err = db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL);
+    password TEXT NOT NULL,
+    salt TEXT);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 	`)
 
@@ -175,11 +176,11 @@ func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
 	return entities, nil
 }
 
-func (s *Storage) UserSave(ctx context.Context, email string, password string) (int, error) {
+func (s *Storage) UserSave(ctx context.Context, user storage.UserModel) (int, error) {
 	const op = "storage.sqlite.UserSave"
 
 	var exists bool
-	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?);", email).Scan(&exists)
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?);", user.Email).Scan(&exists)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -187,13 +188,13 @@ func (s *Storage) UserSave(ctx context.Context, email string, password string) (
 		return 0, storage.ErrUserExists
 	}
 
-	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO users (email, password) VALUES (?, ?);`)
+	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO users (email, password, salt) VALUES (?, ?, ?);`)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	res, err := stmt.ExecContext(ctx, email, password)
+	res, err := stmt.ExecContext(ctx, user.Email, user.Password, user.Salt)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
@@ -204,24 +205,25 @@ func (s *Storage) UserSave(ctx context.Context, email string, password string) (
 	return int(id), nil
 }
 
-func (s *Storage) GetUserHash(ctx context.Context, email string, password string) (int, string, error) {
+func (s *Storage) GetUserHash(ctx context.Context, email string) (*storage.UserModel, error) {
 	const op = "storage.sqlite.GetUserHash"
 
-	stmt, err := s.db.PrepareContext(ctx, "SELECT id, password FROM users WHERE email = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "SELECT id, password, salt FROM users WHERE email = ?;")
 	if err != nil {
-		return 0, "", fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
 	var userId int
 	var hashedPass string
-	err = stmt.QueryRowContext(ctx, email).Scan(&userId, &hashedPass)
+	var salt string
+	err = stmt.QueryRowContext(ctx, email).Scan(&userId, &hashedPass, &salt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, "", storage.ErrUserNotFound
+			return nil, storage.ErrUserNotFound
 		}
-		return 0, "", fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return userId, hashedPass, nil
+	return &storage.UserModel{Id: userId, Password: hashedPass, Salt: salt}, nil
 }
