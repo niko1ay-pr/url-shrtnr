@@ -5,11 +5,11 @@ import (
 	"log/slog"
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/config"
-	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/all"
-	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/delete"
-	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/redirect"
-	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
-	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/update"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/all"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/delete"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/redirect"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/login"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
@@ -67,7 +67,8 @@ func main() {
 		redirect.New(ctx, log, storage))
 	router.Post("/users/register", register.New(ctx, log, storage))
 	router.Post("/users/login", login.New(ctx, log, storage))
-
+	// TODO: /users/refresh
+	// router.POST("/users/refresh", refresh.New(ctx, log, storage))
 	s := http.Server{
 		Handler:     router,
 		Addr:        config.HTTPServer.Address,

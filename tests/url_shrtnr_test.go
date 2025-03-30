@@ -3,7 +3,7 @@ package tests
 import (
 	"net/http"
 	"net/url"
-	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/url/save"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save"
 	"niko1ay-pr/url-shrtnr/internal/lib/random"
 	"testing"
 
