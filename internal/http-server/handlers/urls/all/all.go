@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/models"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -14,11 +14,11 @@ import (
 
 type Response struct {
 	response.Response
-	Entities []storage.UrlEntity
+	Entities []models.UrlEntity
 }
 
 type URLGetterAll interface {
-	GetAll(context.Context) ([]storage.UrlEntity, error)
+	GetAll(context.Context) ([]models.UrlEntity, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.HandlerFunc {

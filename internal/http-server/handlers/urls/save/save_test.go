@@ -10,7 +10,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save/mocks"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 	"strings"
 	"testing"
 
@@ -59,7 +59,7 @@ var cases = []struct {
 		alias:   "any_alias",
 		url:     "https://google.com",
 		respErr: "url already exists",
-		mockErr: storage.ErrUrlExists,
+		mockErr: repository.ErrUrlExists,
 	},
 }
 

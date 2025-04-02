@@ -7,7 +7,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/lib/random"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -63,7 +63,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 			alias := entity.Alias
 			if alias == "" {
 				// TODO: check if genereted alias is already exists
-				alias, err = random.NewRandomString(storage.AliasLength)
+				alias, err = random.NewRandomString(repository.AliasLength)
 				if err != nil {
 					log.Error("failed to generate new alias", sl.Err(err))
 					render.JSON(w, r, response.Error("failed to generate new alias"))
@@ -73,7 +73,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 			// TODO: owner_id reveice from header (bearer). Decode from JWT-token
 			ownerId := 0
 			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerId)
-			if err == storage.ErrUrlExists {
+			if err == repository.ErrUrlExists {
 				log.Info("url already exists", slog.String("url", entity.URL))
 				render.JSON(w, r, response.Error("url already exists"))
 				return

@@ -1,4 +1,4 @@
-package storage
+package repository
 
 import "errors"
 
@@ -6,17 +6,9 @@ const (
 	AliasLength = 6
 )
 
-type UrlEntity struct {
-	Alias string `json:"alias,required"`
-	Url   string `json:"url,required"`
-}
 
-type UserModel struct {
-	Id       int
-	Email    string
-	Password string
-	Salt     string
-}
+
+
 
 var (
 	ErrUrlNotFound  = errors.New("url not found")

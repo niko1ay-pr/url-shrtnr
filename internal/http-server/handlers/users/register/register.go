@@ -7,7 +7,8 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/hash"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/models"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -26,7 +27,7 @@ type Response struct {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=UserSaver
 type UserSaver interface {
-	UserSave(context.Context, storage.UserModel) (int, error)
+	UserSave(context.Context, models.User) (int, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
@@ -65,9 +66,9 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			return
 		}
 		//store salt near password
-		userId, err := userSaver.UserSave(ctx, storage.UserModel{Email: req.Email,
+		_, err = userSaver.UserSave(ctx, models.User{Email: req.Email,
 			Password: hashedPass, Salt: salt})
-		if err == storage.ErrUrlExists {
+		if err == repository.ErrUrlExists {
 			log.Info("already exists", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register"))
 			return
@@ -78,8 +79,6 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			return
 		}
 
-		// TODO: use userId like "sub" claim in token
-		_ = userId
 		log.Info("user registered", slog.String("email", req.Email))
 		render.JSON(w, r, Response{Response: response.Ok(),
 			Email: req.Email,

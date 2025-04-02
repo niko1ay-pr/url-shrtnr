@@ -14,7 +14,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
-	"niko1ay-pr/url-shrtnr/internal/storage/sqlite"
+	"niko1ay-pr/url-shrtnr/internal/repository/sqlite"
 	"os"
 	"os/signal"
 	"syscall"

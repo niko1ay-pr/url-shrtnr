@@ -7,7 +7,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/hash"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/models"
 	"strconv"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -28,7 +28,7 @@ type Response struct {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=UserHashGetter
 type UserHashGetter interface {
-	GetUserHash(context.Context, string) (*storage.UserModel, error)
+	GetUserHash(context.Context, string) (*models.User, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter) http.HandlerFunc {

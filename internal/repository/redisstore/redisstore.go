@@ -3,7 +3,7 @@ package redisstore
 import (
 	"context"
 	"fmt"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -14,7 +14,7 @@ type Storage struct {
 
 func New() (*Storage, error) {
 
-	const op = "storage.redisstore.New"
+	const op = "repository.redisstore.New"
 
 	db := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
@@ -28,11 +28,11 @@ func New() (*Storage, error) {
 }
 
 func (s *Storage) SaveURL(urlToSave string, alias string) error {
-	const op = "storage.redisstore.SaveURL"
+	const op = "repository.redisstore.SaveURL"
 
 	_, err := s.db.Get(context.Background(), urlToSave).Result()
 	if err == redis.Nil {
-		return fmt.Errorf("%s: %v", op, storage.ErrUrlExists)
+		return fmt.Errorf("%s: %v", op, repository.ErrUrlExists)
 	} else if err != nil {
 		return fmt.Errorf("%s: %v", op, err)
 	}
@@ -46,10 +46,10 @@ func (s *Storage) SaveURL(urlToSave string, alias string) error {
 }
 
 func (s *Storage) GetURL(urlToGet string) (string, error) {
-	const op = "storage.redisstore.GetURL"
+	const op = "repository.redisstore.GetURL"
 	url, err := s.db.Get(context.Background(), urlToGet).Result()
 	if err == redis.Nil {
-		return "", fmt.Errorf("%s: %v", op, storage.ErrUrlNotFound)
+		return "", fmt.Errorf("%s: %v", op, repository.ErrUrlNotFound)
 	} else if err != nil {
 		return "", fmt.Errorf("%s: %v", op, err)
 	}

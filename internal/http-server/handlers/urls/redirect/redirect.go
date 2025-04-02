@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -32,7 +32,7 @@ func New(ctx context.Context, log *slog.Logger, urlGetter URLGetter) http.Handle
 		}
 
 		url, err := urlGetter.GetURL(ctx, alias)
-		if err == storage.ErrUrlNotFound {
+		if err == repository.ErrUrlNotFound {
 			log.Info("ulr not found", slog.String("alias", alias))
 			render.JSON(w, r, response.Error("url not found"))
 			return

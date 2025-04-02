@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/models"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -59,7 +60,7 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 }
 
 func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, ownerID int) error {
-	op := "storage.sqlite.SaveURL"
+	op := "repository.sqlite.SaveURL"
 
 	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO url (alias, url) VALUES (?, ?);`)
 	if err != nil {
@@ -70,7 +71,7 @@ func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, o
 	_, err = stmt.ExecContext(ctx, alias, urlToSave)
 	if err != nil {
 		if sqlErr, ok := err.(sqlite3.Error); ok && sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-			return fmt.Errorf("%s: %w", op, storage.ErrUrlExists)
+			return fmt.Errorf("%s: %w", op, repository.ErrUrlExists)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -90,7 +91,7 @@ func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	err = stmt.QueryRowContext(ctx, alias).Scan(&resUrl)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", storage.ErrUrlNotFound
+			return "", repository.ErrUrlNotFound
 		}
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -98,7 +99,7 @@ func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 }
 
 func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
-	op := "storage.sqlite.DeleteURL"
+	op := "repository.sqlite.DeleteURL"
 
 	var exists bool
 	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
@@ -106,7 +107,7 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
-		return storage.ErrUrlNotFound
+		return repository.ErrUrlNotFound
 	}
 
 	stmt, err := s.db.PrepareContext(ctx, "DELETE FROM url WHERE alias = ?;")
@@ -123,7 +124,7 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 }
 
 func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, url string) error {
-	op := "storage.sqlite.UpdateURL"
+	op := "repository.sqlite.UpdateURL"
 
 	var exists bool
 	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
@@ -131,7 +132,7 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
-		return storage.ErrUrlNotFound
+		return repository.ErrUrlNotFound
 	}
 
 	stmt, err := s.db.PrepareContext(ctx, "UPDATE url SET alias = ?, url = ? WHERE alias = ?;")
@@ -147,8 +148,8 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 	return nil
 }
 
-func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
-	const op = "storage.sqlite.GetAll"
+func (s *Storage) GetAll(ctx context.Context) ([]models.UrlEntity, error) {
+	const op = "repository.sqlite.GetAll"
 	query := "SELECT alias, url FROM url"
 
 	rows, err := s.db.Query(query)
@@ -157,7 +158,7 @@ func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
 	}
 	defer rows.Close()
 
-	var entities []storage.UrlEntity
+	var entities []models.UrlEntity
 
 	for rows.Next() {
 		var alias, url string
@@ -166,7 +167,7 @@ func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
-		entities = append(entities, storage.UrlEntity{Alias: alias, Url: url})
+		entities = append(entities, models.UrlEntity{Alias: alias, Url: url})
 	}
 
 	if err := rows.Err(); err != nil {
@@ -176,8 +177,8 @@ func (s *Storage) GetAll(ctx context.Context) ([]storage.UrlEntity, error) {
 	return entities, nil
 }
 
-func (s *Storage) UserSave(ctx context.Context, user storage.UserModel) (int, error) {
-	const op = "storage.sqlite.UserSave"
+func (s *Storage) UserSave(ctx context.Context, user models.User) (int, error) {
+	const op = "repository.sqlite.UserSave"
 
 	var exists bool
 	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?);", user.Email).Scan(&exists)
@@ -185,7 +186,7 @@ func (s *Storage) UserSave(ctx context.Context, user storage.UserModel) (int, er
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 	if exists {
-		return 0, storage.ErrUserExists
+		return 0, repository.ErrUserExists
 	}
 
 	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO users (email, password, salt) VALUES (?, ?, ?);`)
@@ -205,8 +206,8 @@ func (s *Storage) UserSave(ctx context.Context, user storage.UserModel) (int, er
 	return int(id), nil
 }
 
-func (s *Storage) GetUserHash(ctx context.Context, email string) (*storage.UserModel, error) {
-	const op = "storage.sqlite.GetUserHash"
+func (s *Storage) GetUserHash(ctx context.Context, email string) (*models.User, error) {
+	const op = "repository.sqlite.GetUserHash"
 
 	stmt, err := s.db.PrepareContext(ctx, "SELECT id, password, salt FROM users WHERE email = ?;")
 	if err != nil {
@@ -220,10 +221,10 @@ func (s *Storage) GetUserHash(ctx context.Context, email string) (*storage.UserM
 	err = stmt.QueryRowContext(ctx, email).Scan(&userId, &hashedPass, &salt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, storage.ErrUserNotFound
+			return nil, repository.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &storage.UserModel{Id: userId, Password: hashedPass, Salt: salt}, nil
+	return &models.User{Id: userId, Password: hashedPass, Salt: salt}, nil
 }

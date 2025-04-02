@@ -10,7 +10,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update/mocks"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 	"strings"
 	"testing"
 
@@ -69,7 +69,7 @@ var cases = []struct {
 		newAlias: "any_another_alias",
 		url:      "https://google.com",
 		respErr:  "url not found",
-		mockErr:  storage.ErrUrlNotFound,
+		mockErr:  repository.ErrUrlNotFound,
 	},
 }
 

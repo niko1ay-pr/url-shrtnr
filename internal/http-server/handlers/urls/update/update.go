@@ -7,7 +7,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/lib/random"
-	"niko1ay-pr/url-shrtnr/internal/storage"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -40,7 +40,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		alias := chi.URLParam(r, "alias")
 
 		if alias == "" {
-			log.Info("not found", sl.Err(storage.ErrUrlNotFound))
+			log.Info("not found", sl.Err(repository.ErrUrlNotFound))
 			render.JSON(w, r, response.Error("url not found"))
 			return
 		}
@@ -70,7 +70,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		newURL := req.URL
 
 		if newAlias == "" {
-			newAlias, err = random.NewRandomString(storage.AliasLength)
+			newAlias, err = random.NewRandomString(repository.AliasLength)
 			if err != nil {
 				log.Error("failed to generate new alias", sl.Err(err))
 				render.JSON(w, r, response.Error("internal error"))
@@ -79,7 +79,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		}
 
 		err = urlUpdater.UpdateURL(ctx, alias, newAlias, newURL)
-		if err == storage.ErrUrlNotFound {
+		if err == repository.ErrUrlNotFound {
 			log.Info("url not found", slog.String("alias", alias))
 			render.JSON(w, r, response.Error("url not found"))
 			return
