@@ -43,7 +43,7 @@ var cases = []struct {
 	},
 	{
 		name:    "Invalid URL",
-		alias:   "invalid_ulr",
+		alias:   "invalid_url",
 		url:     "invalid.url",
 		respErr: "field URL is not a valid URL",
 	},
@@ -72,7 +72,8 @@ func TestSaveHandler(t *testing.T) {
 			urlSaverMock := mocks.NewURLSaver(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlSaverMock.On("SaveURL", context.Background(), tc.url, mock.AnythingOfType("string")).
+				urlSaverMock.On("SaveURL", context.Background(), tc.url, mock.AnythingOfType("string"),
+					mock.AnythingOfType("string"), mock.AnythingOfType("int")).
 					Return(tc.mockErr).Once()
 			}
 

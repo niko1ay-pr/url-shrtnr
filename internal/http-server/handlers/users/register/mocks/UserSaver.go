@@ -4,6 +4,7 @@ package mocks
 
 import (
 	context "context"
+	models "niko1ay-pr/url-shrtnr/internal/models"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -13,22 +14,32 @@ type UserSaver struct {
 	mock.Mock
 }
 
-// UserSave provides a mock function with given fields: _a0, _a1, _a2
-func (_m *UserSaver) UserSave(_a0 context.Context, _a1 string, _a2 string) error {
-	ret := _m.Called(_a0, _a1, _a2)
+// UserSave provides a mock function with given fields: _a0, _a1
+func (_m *UserSaver) UserSave(_a0 context.Context, _a1 models.User) (int, error) {
+	ret := _m.Called(_a0, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UserSave")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(_a0, _a1, _a2)
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, models.User) (int, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, models.User) int); ok {
+		r0 = rf(_a0, _a1)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(int)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, models.User) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // NewUserSaver creates a new instance of UserSaver. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
