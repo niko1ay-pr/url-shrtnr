@@ -177,33 +177,29 @@ func (s *Storage) GetAll(ctx context.Context) ([]models.UrlEntity, error) {
 	return entities, nil
 }
 
-func (s *Storage) UserSave(ctx context.Context, user models.User) (int, error) {
+func (s *Storage) UserSave(ctx context.Context, user models.User) error {
 	const op = "repository.sqlite.UserSave"
 
 	var exists bool
 	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?);", user.Email).Scan(&exists)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	if exists {
-		return 0, repository.ErrUserExists
+		return repository.ErrUserExists
 	}
 
 	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO users (email, password, salt) VALUES (?, ?, ?);`)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	res, err := stmt.ExecContext(ctx, user.Email, user.Password, user.Salt)
+	_, err = stmt.ExecContext(ctx, user.Email, user.Password, user.Salt)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	return int(id), nil
+	return nil
 }
 
 func (s *Storage) GetUserHash(ctx context.Context, email string) (*models.User, error) {

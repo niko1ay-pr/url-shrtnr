@@ -27,7 +27,7 @@ type Response struct {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=UserSaver
 type UserSaver interface {
-	UserSave(context.Context, models.User) (int, error)
+	UserSave(context.Context, models.User) error
 }
 
 func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
@@ -66,9 +66,9 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			return
 		}
 		//store salt near password
-		_, err = userSaver.UserSave(ctx, models.User{Email: req.Email,
+		err = userSaver.UserSave(ctx, models.User{Email: req.Email,
 			Password: hashedPass, Salt: salt})
-		if err == repository.ErrUrlExists {
+		if err == repository.ErrUserExists {
 			log.Info("already exists", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to register"))
 			return
@@ -80,6 +80,7 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 		}
 
 		log.Info("user registered", slog.String("email", req.Email))
+		// TODO: return created status
 		render.JSON(w, r, Response{Response: response.Ok(),
 			Email: req.Email,
 		})
