@@ -23,11 +23,12 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	stmt, err := db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS urls (id INTEGER PRIMARY KEY,
+	stmt, err := db.PrepareContext(ctx, `CREATE TABLE IF NOT EXISTS urls (
+	id INTEGER PRIMARY KEY,
 	alias TEXT NOT NULL UNIQUE,
 	url TEXT NOT NULL,
 	owner_id INTEGER REFERENCES users(id));
-	CREATE INDEX IF NOT EXISTS alias_idx ON urls (alias);
+	CREATE INDEX IF NOT EXISTS owner_id_idx ON urls (owner_id);
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -44,7 +45,6 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     salt TEXT);
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 	`)
 
 	if err != nil {
