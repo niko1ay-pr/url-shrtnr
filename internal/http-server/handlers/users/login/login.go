@@ -37,7 +37,7 @@ type UserHashGetter interface {
 	GetUserHash(context.Context, string) (*models.User, error)
 }
 
-func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter) http.HandlerFunc {
+func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secret []byte) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.users.login.New"
 		log = log.With(slog.String("op", op),
@@ -86,7 +86,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter) http.
 				Subject:   user.Email,
 			},
 		})
-		signedString, err := token.SignedString([]byte("Hfd#ksjfdvds123sfjghcv"))
+		signedString, err := token.SignedString(secret)
 		if err != nil {
 			log.Error("failed to sign token", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to login user"))

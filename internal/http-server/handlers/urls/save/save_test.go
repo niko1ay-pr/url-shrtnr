@@ -14,21 +14,22 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 var cases = []struct {
 	name    string
 	alias   string
+	ownerID int
 	url     string
 	respErr string
 	mockErr error
 }{
 	{
-		name:  "Success",
-		alias: "test_alias",
-		url:   "https://google.com",
+		name:    "Success",
+		alias:   "test_alias",
+		ownerID: 1,
+		url:     "https://google.com",
 	},
 	{
 		name:  "Empty alias",
@@ -44,6 +45,7 @@ var cases = []struct {
 	{
 		name:    "Invalid URL",
 		alias:   "invalid_url",
+		ownerID: 0,
 		url:     "invalid.url",
 		respErr: "field URL is not a valid URL",
 	},
@@ -72,8 +74,7 @@ func TestSaveHandler(t *testing.T) {
 			urlSaverMock := mocks.NewURLSaver(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlSaverMock.On("SaveURL", context.Background(), tc.url, mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"), mock.AnythingOfType("int")).
+				urlSaverMock.On("SaveURL", context.Background(), tc.url, tc.alias, tc.ownerID).
 					Return(tc.mockErr).Once()
 			}
 

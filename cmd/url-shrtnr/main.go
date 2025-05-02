@@ -12,6 +12,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/login"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register"
+	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/repository/sqlite"
@@ -54,19 +55,24 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.URLFormat)
 
-	router.Route("/url", func(r chi.Router) {
-		r.Use(middleware.BasicAuth("url-shrtnr", map[string]string{
-			config.HTTPServer.User: config.HTTPServer.Password,
-		}))
-		r.Delete("/{alias}", delete.New(ctx, log, storage))
-		r.Post("/", save.New(ctx, log, storage))
-		r.Put("/{alias}", update.New(ctx, log, storage))
-	})
-	router.Get("/urls", all.New(ctx, log, storage))
-	router.Get("/urls/{alias}",
-		redirect.New(ctx, log, storage))
+	// public routes
 	router.Post("/users/register", register.New(ctx, log, storage))
-	router.Post("/users/login", login.New(ctx, log, storage))
+	router.Post("/users/login", login.New(ctx, log, storage, config.JWTSecret))
+
+	// protected routes
+	router.Group(func(protected chi.Router) {
+		protected.Use(jwtauth.ExtractToken)
+
+		protected.Route("/url", func(r chi.Router) {
+			r.Delete("/{alias}", delete.New(ctx, log, storage))
+			r.Post("/", save.New(ctx, log, storage))
+			r.Put("/{alias}", update.New(ctx, log, storage))
+		})
+		protected.Get("/urls", all.New(ctx, log, storage))
+		protected.Get("/urls/{alias}",
+			redirect.New(ctx, log, storage))
+	})
+
 	// TODO: /users/refresh
 	// router.POST("/users/refresh", refresh.New(ctx, log, storage))
 	s := http.Server{

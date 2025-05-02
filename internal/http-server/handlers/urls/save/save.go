@@ -70,7 +70,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 					return
 				}
 			}
-			// TODO: owner_id reveice from header (bearer). Decode from JWT-token
+			// TODO: owner_id receive from header (bearer). Decode from JWT-token
 			ownerId := 0
 			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerId)
 			if err == repository.ErrUrlExists {

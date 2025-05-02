@@ -31,6 +31,7 @@ func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.
 		entities, err := urlGetterAll.GetAll(ctx)
 		if err != nil {
 			log.Error("failed to get all urls", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("internal error"))
 			return
 		}

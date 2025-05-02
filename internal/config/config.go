@@ -12,6 +12,7 @@ type Config struct {
 	Env         string `yaml:"env" env-default:"local"`
 	StoragePath string `yaml:"storage_path" env-required:"true"`
 	HTTPServer  `yaml:"http_server"`
+	JWTSecret   []byte
 }
 
 type HTTPServer struct {
@@ -38,5 +39,14 @@ func MustLoad() *Config {
 		log.Fatalf("Failed to read config file: %v", err)
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is not set")
+	}
+	if len(jwtSecret) != 32 {
+		log.Fatal("JWT_SECRET must be 32 bytes long")
+	}
+
+	config.JWTSecret = []byte(jwtSecret)
 	return &config
 }
