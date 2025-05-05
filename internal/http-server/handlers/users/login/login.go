@@ -6,14 +6,13 @@ import (
 	"net/http"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/hash"
+	"niko1ay-pr/url-shrtnr/internal/lib/jwt"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/models"
-	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Request struct {
@@ -25,11 +24,6 @@ type Response struct {
 	response.Response
 	Token string `json:"token"`
 	Email string `json:"email"`
-}
-
-type CustomClaims struct {
-	UserID int `json:"user_id"`
-	jwt.RegisteredClaims
 }
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=UserHashGetter
@@ -76,23 +70,11 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 
 		log.Debug("password verified successfully")
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &CustomClaims{
-			int(user.Id),
-			jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-				NotBefore: jwt.NewNumericDate(time.Now()),
-				Issuer:    "url-shrtnr",
-				Subject:   user.Email,
-			},
-		})
-		signedString, err := token.SignedString(secret)
+		signedString, err := jwt.GenerateToken(log, secret, user.Id, user.Email)
 		if err != nil {
-			log.Error("failed to sign token", sl.Err(err))
 			render.JSON(w, r, response.Error("failed to login user"))
 			return
 		}
-
 		log.Debug("user is logged in", slog.String("email", user.Email), slog.String("token", signedString))
 
 		render.JSON(w, r, Response{

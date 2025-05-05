@@ -61,7 +61,7 @@ func main() {
 
 	// protected routes
 	router.Group(func(protected chi.Router) {
-		protected.Use(jwtauth.ExtractToken)
+		protected.Use(jwtauth.ExtractClaims(config.JWTSecret))
 
 		protected.Route("/url", func(r chi.Router) {
 			r.Delete("/{alias}", delete.New(ctx, log, storage))
