@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/lib/random"
@@ -24,7 +25,7 @@ type Entity struct {
 	Alias string `json:"alias,omitempty"`
 }
 type Request struct {
-	Entities []Entity `json:"entities"`
+	Entities []Entity `json:"entities" validate:"required,dive"`
 }
 
 type Response struct {
@@ -40,6 +41,12 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
+		ownerID := jwtauth.GetUserID(r.Context())
+		if ownerID == 0 {
+			log.Error("owner ID cannot be empty")
+			render.JSON(w, r, response.Error("failed to decode request body"))
+			return
+		}
 		var req Request
 
 		err := render.DecodeJSON(r.Body, &req)
@@ -70,9 +77,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 					return
 				}
 			}
-			// TODO: owner_id receive from header (bearer). Decode from JWT-token
-			ownerId := 0
-			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerId)
+			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerID)
 			if err == repository.ErrUrlExists {
 				log.Info("url already exists", slog.String("url", entity.URL))
 				render.JSON(w, r, response.Error("url already exists"))

@@ -6,6 +6,8 @@ import (
 	jwtlib "niko1ay-pr/url-shrtnr/internal/lib/jwt"
 )
 
+type contextKey struct{}
+
 func ExtractClaims(secret []byte) func(http.Handler) http.Handler {
 	const op = "internal.http-server.middleware.jwtauth.ExtractClaims"
 	return func(next http.Handler) http.Handler {
@@ -21,9 +23,20 @@ func ExtractClaims(secret []byte) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+			ctx := context.WithValue(r.Context(), contextKey{}, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)
 	}
+}
+
+func GetUserID(ctx context.Context) int {
+	if ctx == nil {
+		return 0
+	}
+
+	if userID, ok := ctx.Value(contextKey{}).(int); ok {
+		return userID
+	}
+	return 0
 }

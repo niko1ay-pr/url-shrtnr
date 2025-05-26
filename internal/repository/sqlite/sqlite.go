@@ -62,13 +62,13 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, ownerID int) error {
 	op := "repository.sqlite.SaveURL"
 
-	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO url (alias, url) VALUES (?, ?);`)
+	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO urls (alias, url, owner_id) VALUES (?, ?, ?);`)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, alias, urlToSave)
+	_, err = stmt.ExecContext(ctx, alias, urlToSave, ownerID)
 	if err != nil {
 		if sqlErr, ok := err.(sqlite3.Error); ok && sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique {
 			return fmt.Errorf("%s: %w", op, repository.ErrUrlExists)
@@ -81,7 +81,7 @@ func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, o
 func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	op := "storage.sqlite.GetURL"
 
-	stmt, err := s.db.PrepareContext(ctx, "SELECT url FROM url WHERE alias = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "SELECT url FROM urls WHERE alias = ?;")
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
@@ -102,7 +102,7 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 	op := "repository.sqlite.DeleteURL"
 
 	var exists bool
-	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM urls WHERE alias = ?)", alias).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -110,7 +110,7 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 		return repository.ErrUrlNotFound
 	}
 
-	stmt, err := s.db.PrepareContext(ctx, "DELETE FROM url WHERE alias = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "DELETE FROM urls WHERE alias = ?;")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -127,7 +127,7 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 	op := "repository.sqlite.UpdateURL"
 
 	var exists bool
-	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM url WHERE alias = ?)", alias).Scan(&exists)
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM urls WHERE alias = ?)", alias).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -135,7 +135,7 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 		return repository.ErrUrlNotFound
 	}
 
-	stmt, err := s.db.PrepareContext(ctx, "UPDATE url SET alias = ?, url = ? WHERE alias = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "UPDATE urls SET alias = ?, url = ? WHERE alias = ?;")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -150,7 +150,7 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 
 func (s *Storage) GetAll(ctx context.Context) ([]models.UrlEntity, error) {
 	const op = "repository.sqlite.GetAll"
-	query := "SELECT alias, url FROM url"
+	query := "SELECT alias, url FROM urls"
 
 	rows, err := s.db.Query(query)
 	if err != nil {

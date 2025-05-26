@@ -67,10 +67,9 @@ func main() {
 			r.Delete("/{alias}", delete.New(ctx, log, storage))
 			r.Post("/", save.New(ctx, log, storage))
 			r.Put("/{alias}", update.New(ctx, log, storage))
+			r.Get("/{alias}", redirect.New(ctx, log, storage))
 		})
 		protected.Get("/urls", all.New(ctx, log, storage))
-		protected.Get("/urls/{alias}",
-			redirect.New(ctx, log, storage))
 	})
 
 	// TODO: /users/refresh
