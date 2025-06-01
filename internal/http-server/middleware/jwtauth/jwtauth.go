@@ -8,8 +8,12 @@ import (
 
 type contextKey struct{}
 
+func ContextWithUserID(ctx context.Context, userId int) context.Context {
+	return context.WithValue(ctx, contextKey{}, userId)
+}
+
 func ExtractClaims(secret []byte) func(http.Handler) http.Handler {
-	const op = "internal.http-server.middleware.jwtauth.ExtractClaims"
+	// const op = "internal.http-server.middleware.jwtauth.ExtractClaims"
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			tokenString, err := jwtlib.ExtractToken(r)

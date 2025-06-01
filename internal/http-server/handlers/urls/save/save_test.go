@@ -9,57 +9,100 @@ import (
 	"net/http/httptest"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save/mocks"
+	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
 	"niko1ay-pr/url-shrtnr/internal/repository"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 var cases = []struct {
-	name    string
-	alias   string
-	ownerID int
-	url     string
-	respErr string
-	mockErr error
+	name     string
+	entities []save.Entity
+	ownerID  int
+	respErr  string
+	mockErr  error
 }{
 	{
-		name:    "Success",
-		alias:   "test_alias",
+		name: "Success One Entity",
+		entities: []save.Entity{
+			{
+				URL:   "https://google.com",
+				Alias: "test_alias",
+			},
+		},
 		ownerID: 1,
-		url:     "https://google.com",
 	},
 	{
-		name:  "Empty alias",
-		alias: "",
-		url:   "https://google.com",
+		name: "Success Multiple Entities",
+		entities: []save.Entity{
+			{
+				URL:   "https://google.com",
+				Alias: "test_alias",
+			},
+			{
+				URL:   "https://yandex.ru",
+				Alias: "another_test",
+			},
+		},
+		ownerID: 1,
 	},
 	{
-		name:    "Empty URL",
-		alias:   "test_empty_url",
-		url:     "",
+		name: "Empty alias",
+		entities: []save.Entity{
+			{
+				URL:   "https://google.com",
+				Alias: "",
+			},
+		},
+		ownerID: 1,
+	},
+	{
+		name: "Empty URL",
+		entities: []save.Entity{
+			{
+				URL:   "",
+				Alias: "test_empty_url",
+			},
+		},
+		ownerID: 1,
 		respErr: "field URL is required",
 	},
 	{
-		name:    "Invalid URL",
-		alias:   "invalid_url",
-		ownerID: 0,
-		url:     "invalid.url",
+		name: "Invalid URL",
+		entities: []save.Entity{
+			{
+				URL:   "invalid.url",
+				Alias: "invalid_url",
+			},
+		},
+		ownerID: 1,
 		respErr: "field URL is not a valid URL",
 	},
 	{
-		name:    "SaveURL error",
-		alias:   "some_valid_alias",
-		url:     "https://google.com",
+		name: "SaveURL error",
+		entities: []save.Entity{
+			{
+				URL:   "https://google.com",
+				Alias: "some_valid_alias",
+			},
+		},
+		ownerID: 1,
 		respErr: "failed to store url",
 		mockErr: errors.New("unexpected error"),
 	},
 	{
-		name:    "Url already exists",
-		alias:   "any_alias",
-		url:     "https://google.com",
+		name: "Url already exists",
+		entities: []save.Entity{
+			{
+				URL:   "https://google.com",
+				Alias: "any_alias",
+			},
+		},
+		ownerID: 1,
 		respErr: "url already exists",
 		mockErr: repository.ErrUrlExists,
 	},
@@ -73,16 +116,25 @@ func TestSaveHandler(t *testing.T) {
 
 			urlSaverMock := mocks.NewURLSaver(t)
 
+			var entitiesInput string
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlSaverMock.On("SaveURL", context.Background(), tc.url, tc.alias, tc.ownerID).
-					Return(tc.mockErr).Once()
+				for _, ent := range tc.entities {
+					urlSaverMock.On("SaveURL", context.Background(), ent.URL, mock.AnythingOfType("string"), tc.ownerID).
+						Return(tc.mockErr).Once()
+				}
 			}
 
 			handler := save.New(context.Background(), sldiscard.NewDescardLogger(), urlSaverMock)
-
-			input := fmt.Sprintf(`{"url": "%s", "alias": "%s"}`, tc.url, tc.alias)
-
-			req, err := http.NewRequest(http.MethodPost, "/save", strings.NewReader(input))
+			for n, ent := range tc.entities {
+				entitiesInput = fmt.Sprintf(`%s{"url": "%s","alias":"%s"}`, entitiesInput, ent.URL, ent.Alias)
+				if n < len(tc.entities)-1 {
+					entitiesInput += ","
+				}
+			}
+			input := fmt.Sprintf(`{"entities":[%s]}`, entitiesInput)
+			req, err := http.NewRequest(http.MethodPost, "/url/save", strings.NewReader(input))
+			ctx := jwtauth.ContextWithUserID(req.Context(), tc.ownerID)
+			req = req.WithContext(ctx)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
