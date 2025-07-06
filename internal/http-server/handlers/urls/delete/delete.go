@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/repository"
@@ -19,7 +20,7 @@ type Response struct {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLDeleter
 type URLDeleter interface {
-	DeleteURL(context.Context, string) error
+	DeleteURL(context.Context, string, int64) error
 }
 
 func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
@@ -28,6 +29,13 @@ func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.Hand
 
 		log = log.With(slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())))
+
+		ownerID := jwtauth.GetUserID(r.Context())
+		if ownerID == 0 {
+			log.Error("owner ID cannot be empty")
+			render.JSON(w, r, response.Error("failed to decode request body"))
+			return
+		}
 
 		alias := chi.URLParam(r, "alias")
 		if alias == "" {
@@ -39,7 +47,7 @@ func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.Hand
 
 		log.Info("received alias", slog.String("alias", alias))
 
-		err := urlDeleter.DeleteURL(ctx, alias)
+		err := urlDeleter.DeleteURL(ctx, alias, ownerID)
 
 		if err == repository.ErrUrlNotFound {
 			log.Info("url not found", slog.String("alias", alias))
