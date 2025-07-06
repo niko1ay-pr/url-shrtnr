@@ -8,7 +8,7 @@ import (
 
 type contextKey struct{}
 
-func ContextWithUserID(ctx context.Context, userId int) context.Context {
+func ContextWithUserID(ctx context.Context, userId int64) context.Context {
 	return context.WithValue(ctx, contextKey{}, userId)
 }
 
@@ -34,12 +34,12 @@ func ExtractClaims(secret []byte) func(http.Handler) http.Handler {
 	}
 }
 
-func GetUserID(ctx context.Context) int {
+func GetUserID(ctx context.Context) int64 {
 	if ctx == nil {
 		return 0
 	}
 
-	if userID, ok := ctx.Value(contextKey{}).(int); ok {
+	if userID, ok := ctx.Value(contextKey{}).(int64); ok {
 		return userID
 	}
 	return 0

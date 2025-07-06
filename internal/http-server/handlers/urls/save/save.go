@@ -17,7 +17,7 @@ import (
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=URLSaver
 type URLSaver interface {
-	SaveURL(ctx context.Context, url string, alias string, ownerId int) error
+	SaveURL(ctx context.Context, url string, alias string, ownerId int64) error
 }
 
 type Entity struct {

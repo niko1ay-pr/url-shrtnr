@@ -18,13 +18,13 @@ var (
 )
 
 type CustomClaims struct {
-	UserID int `json:"user_id"`
+	UserID int64 `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
 func GenerateToken(log *slog.Logger, secret []byte, UserID int, UserEmail string) (string, error) {
 	token := jwt.NewWithClaims(DefaultSigningMethod, &CustomClaims{
-		int(UserID),
+		int64(UserID),
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

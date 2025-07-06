@@ -59,7 +59,7 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, ownerID int) error {
+func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, ownerID int64) error {
 	op := "repository.sqlite.SaveURL"
 
 	stmt, err := s.db.PrepareContext(ctx, `INSERT INTO urls (alias, url, owner_id) VALUES (?, ?, ?);`)
@@ -123,7 +123,7 @@ func (s *Storage) DeleteURL(ctx context.Context, alias string) error {
 	return nil
 }
 
-func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, url string) error {
+func (s *Storage) UpdateURL(ctx context.Context, alias string, url string, ownerID int64) error {
 	op := "repository.sqlite.UpdateURL"
 
 	var exists bool
@@ -135,13 +135,13 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, newAlias string, 
 		return repository.ErrUrlNotFound
 	}
 
-	stmt, err := s.db.PrepareContext(ctx, "UPDATE urls SET alias = ?, url = ? WHERE alias = ?;")
+	stmt, err := s.db.PrepareContext(ctx, "UPDATE urls SET url = ? WHERE alias = ?;")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, newAlias, url, alias)
+	_, err = stmt.ExecContext(ctx, url, alias)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

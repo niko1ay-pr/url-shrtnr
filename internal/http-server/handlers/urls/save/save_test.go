@@ -22,7 +22,7 @@ import (
 var cases = []struct {
 	name     string
 	entities []save.Entity
-	ownerID  int
+	ownerID  int64
 	respErr  string
 	mockErr  error
 }{

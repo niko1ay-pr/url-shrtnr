@@ -14,7 +14,7 @@ type URLSaver struct {
 }
 
 // SaveURL provides a mock function with given fields: ctx, url, alias, ownerId
-func (_m *URLSaver) SaveURL(ctx context.Context, url string, alias string, ownerId int) error {
+func (_m *URLSaver) SaveURL(ctx context.Context, url string, alias string, ownerId int64) error {
 	ret := _m.Called(ctx, url, alias, ownerId)
 
 	if len(ret) == 0 {
@@ -22,7 +22,7 @@ func (_m *URLSaver) SaveURL(ctx context.Context, url string, alias string, owner
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64) error); ok {
 		r0 = rf(ctx, url, alias, ownerId)
 	} else {
 		r0 = ret.Error(0)
