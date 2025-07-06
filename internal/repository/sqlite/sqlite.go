@@ -71,7 +71,7 @@ func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string, o
 	_, err = stmt.ExecContext(ctx, alias, urlToSave, ownerID)
 	if err != nil {
 		if sqlErr, ok := err.(sqlite3.Error); ok && sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-			return fmt.Errorf("%s: %w", op, repository.ErrUrlExists)
+			return fmt.Errorf("%s: %w", op, repository.ErrAliasExists)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
