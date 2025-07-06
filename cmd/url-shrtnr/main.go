@@ -58,6 +58,7 @@ func main() {
 	// public routes
 	router.Post("/users/register", register.New(ctx, log, storage))
 	router.Post("/users/login", login.New(ctx, log, storage, config.JWTSecret))
+	router.Get("/url/{alias}", redirect.New(ctx, log, storage))
 
 	// protected routes
 	router.Group(func(protected chi.Router) {
@@ -67,7 +68,6 @@ func main() {
 			r.Delete("/{alias}", delete.New(ctx, log, storage))
 			r.Post("/", save.New(ctx, log, storage))
 			r.Put("/{alias}", update.New(ctx, log, storage))
-			r.Get("/{alias}", redirect.New(ctx, log, storage))
 		})
 		protected.Get("/urls", all.New(ctx, log, storage))
 	})
