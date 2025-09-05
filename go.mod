@@ -7,7 +7,6 @@ toolchain go1.24.0
 require (
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/gavv/httpexpect/v2 v2.16.0
-	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.25.0
