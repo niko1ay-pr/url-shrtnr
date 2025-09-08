@@ -11,6 +11,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/hash"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
 	"niko1ay-pr/url-shrtnr/internal/models"
+	"niko1ay-pr/url-shrtnr/internal/repository"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -39,6 +40,19 @@ var loginCases = []struct {
 		expectStatus: http.StatusOK,
 	},
 	{
+		name:         "Invalid email",
+		email:        "invalid-email",
+		password:     "123passWord",
+		expectedErr:  "field Email is not valid",
+		expectStatus: http.StatusBadRequest,
+	},
+	{
+		name:         "Empty password",
+		email:        "example@gmail.com",
+		expectedErr:  "field Password is required",
+		expectStatus: http.StatusBadRequest,
+	},
+	{
 		name:     "Wrong password",
 		email:    "example@gmail.com",
 		password: "wrongpass",
@@ -48,8 +62,16 @@ var loginCases = []struct {
 			Password: "HashedPassword",
 			Salt:     "anysalt",
 		},
-		expectStatus: http.StatusOK,
+		expectStatus: http.StatusInternalServerError,
 		expectedErr:  "failed to login user",
+	},
+	{
+		name:         "User already exists",
+		email:        "existinguser@example.com",
+		password:     "123passWord",
+		mockErr:      repository.ErrUserExists,
+		expectedErr:  "failed to login user",
+		expectStatus: http.StatusInternalServerError,
 	},
 }
 

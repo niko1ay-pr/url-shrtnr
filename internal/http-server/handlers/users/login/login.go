@@ -41,6 +41,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to decode request body"))
 		}
 		log.Debug("request body decoded", slog.Any("request", req))
@@ -48,6 +49,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 		if err != nil {
 			log.Error("invalid request", sl.Err(err))
 			validateErr := err.(validator.ValidationErrors)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -55,6 +57,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 		user, err := hashGetter.GetUserHash(ctx, req.Email)
 		if err != nil {
 			log.Error("failed to login user", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to login user"))
 			return
 		}
@@ -64,6 +67,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 			if err != nil {
 				log.Info("check password hash error", sl.Err(err))
 			}
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to login user"))
 			return
 		}
@@ -72,6 +76,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 
 		signedString, err := jwt.GenerateToken(log, secret, user.Id, user.Email)
 		if err != nil {
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to login user"))
 			return
 		}
