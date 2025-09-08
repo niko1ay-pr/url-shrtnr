@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/url"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register"
 	"niko1ay-pr/url-shrtnr/internal/lib/random"
 	"testing"
 
@@ -12,7 +14,9 @@ import (
 )
 
 const (
-	host = "localhost:8080"
+	host         = "localhost:8080"
+	testEmail    = "valid@example.com"
+	testPassword = "validPassword123"
 )
 
 func TestUrlShrtnr_HappyPath(t *testing.T) {
@@ -28,6 +32,27 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 		return
 	}
 
+	req := register.Request{
+		Email:    testEmail,
+		Password: testPassword,
+	}
+
+	t.Log("Registering new user")
+	regResp := e.POST("/users/register").WithJSON(req).Expect().
+		Status(http.StatusCreated).JSON().Object()
+
+	regResp.Value("status").String().IsEqual("Ok")
+	regResp.Value("email").String().IsEqual(req.Email)
+
+	t.Log("Logging user to get JWT-token")
+	loginResp := e.POST("/users/login").WithJSON(req).Expect().
+		Status(http.StatusOK).JSON().Object()
+
+	token := loginResp.Value("token").String().NotEmpty().Raw()
+	loginResp.Value("status").String().NotEmpty().IsEqual("Ok")
+	loginResp.Value("email").String().NotEmpty().IsEqual(req.Email)
+
+	t.Log("Saving URLs with JWT token")
 	payload := save.Request{Entities: []save.Entity{
 		save.Entity{
 			URL:   gofakeit.URL(),
@@ -38,14 +63,46 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 		},
 	}}
 
-	resp := e.POST("/url").
+	saveResp := e.POST("/url").
 		WithJSON(payload).
-		WithBasicAuth("admin", "adminpass").
-		Expect()
+		WithHeader("Authorization", "Bearer "+token).
+		Expect().
+		Status(http.StatusOK).
+		JSON().Object()
 
-	resp.Status(http.StatusOK).
-		JSON().Object().
-		ContainsKey("entities")
+	saveResp.Value("status").String().IsEqual("Ok")
+	entities := saveResp.Value("entities").Array()
+	entities.Length().IsEqual(2)
+
+	// Store aliases for further deleting
+	var aliases []string
+	for i := range int(entities.Length().Raw()) {
+		entity := entities.Value(i).Object()
+		entity.Value("url").String().NotEmpty()
+		alias := entity.Value("alias").String().NotEmpty().Raw()
+		aliases = append(aliases, alias)
+	}
+
+	t.Log("Test redirecting URL")
+	e.GET("/url/" + aliases[0]).Expect().Status(http.StatusFound).Header("Location").NotEmpty()
+
+	t.Log("Updating URL")
+	newURL := gofakeit.URL()
+	respUpdate := e.PUT("/url/"+aliases[0]).WithJSON(update.Request{URL: newURL}).
+		WithHeader("Authorization", "Bearer: "+token).
+		Expect().Status(http.StatusOK).JSON().Object()
+	respUpdate.Value("url").String().IsEqual(newURL)
+	respUpdate.Value("alias").String().IsEqual(aliases[0])
+
+	t.Log("Deleting URLs")
+	for _, alias := range aliases {
+		deleteResp := e.DELETE("/url/"+alias).
+			WithHeader("Authorization", "Bearer: "+token).
+			Expect().Status(http.StatusOK).JSON().Object()
+		deleteResp.Value("status").String().IsEqual("Ok")
+	}
+
+	t.Log("Happy path test completed!")
 }
 
 func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
@@ -136,8 +193,7 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 	}
 }
 
-// TODO:
-func TestUrlShrtnrUnauthorizedAccess(t *testing.T) {
+func TestUrlShrtnr_UnauthorizedAccess(t *testing.T) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   host,
