@@ -40,6 +40,7 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, "failed decode request body")
 			return
 		}
@@ -48,6 +49,7 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 		if err != nil {
 			log.Error("invalid request", sl.Err(err))
 			validateErr := err.(validator.ValidationErrors)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -55,6 +57,7 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 		salt, err := hash.RandomSalt(hash.SaltSize)
 		if err != nil {
 			log.Error("salt generation error", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to register"))
 			return
 		}
@@ -62,6 +65,7 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 		hashedPass, err := hash.HashPassword(req.Password, salt)
 		if err != nil {
 			log.Error("hashing password error", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to register"))
 			return
 		}
@@ -70,17 +74,20 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			Password: hashedPass, Salt: salt})
 		if err == repository.ErrUserExists {
 			log.Info("already exists", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to register"))
 			return
 		}
 		if err != nil {
 			log.Error("failed to register", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to register"))
 			return
 		}
 
 		log.Info("user registered", slog.String("email", req.Email))
 		// TODO: return created status
+		render.Status(r, http.StatusCreated)
 		render.JSON(w, r, Response{Response: response.Ok(),
 			Email: req.Email,
 		})

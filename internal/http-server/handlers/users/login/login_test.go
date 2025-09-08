@@ -92,7 +92,6 @@ func TestLoginHandler(t *testing.T) {
 			} else if tc.mockErr != nil {
 				userHashGetterMock.On("GetUserHash", mock.Anything, tc.email).
 					Return(nil, tc.mockErr).Once()
-			}
 
 			secret := []byte("test-secret")
 			handler := login.New(context.Background(), sldiscard.NewDescardLogger(), userHashGetterMock, secret)
