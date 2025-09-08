@@ -38,11 +38,12 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 		},
 	}}
 
-	e.POST("/url").
+	resp := e.POST("/url").
 		WithJSON(payload).
 		WithBasicAuth("admin", "adminpass").
-		Expect().
-		Status(http.StatusOK).
+		Expect()
+
+	resp.Status(http.StatusOK).
 		JSON().Object().
 		ContainsKey("entities")
 }
@@ -133,4 +134,39 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 		})
 
 	}
+}
+
+// TODO:
+func TestUrlShrtnrUnauthorizedAccess(t *testing.T) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   host,
+	}
+
+	e := httpexpect.Default(t, u.String())
+
+	e.POST("/url").
+		WithJSON(save.Request{Entities: []save.Entity{}}).
+		Expect().
+		Status(http.StatusUnauthorized)
+
+	e.GET("/urls").
+		Expect().
+		Status(http.StatusUnauthorized)
+
+	e.PUT("/url/testalias").
+		WithJSON(map[string]string{"url": "https://example.com"}).
+		Expect().
+		Status(http.StatusUnauthorized)
+
+	e.DELETE("/url/testalias").
+		Expect().
+		Status(http.StatusUnauthorized)
+
+	// Test save with invalid token
+	e.POST("/url").
+		WithJSON(save.Request{Entities: []save.Entity{}}).
+		WithHeader("Authorizatioin", "Bearer invalid-token").
+		Expect().
+		Status(http.StatusUnauthorized)
 }
