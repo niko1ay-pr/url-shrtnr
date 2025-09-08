@@ -16,7 +16,6 @@ import (
 )
 
 type Request struct {
-	// NewAlias string `json:"new_alias,omitempty"`
 	URL string `json:"url" validate:"required,url"`
 }
 
@@ -40,6 +39,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		ownerID := jwtauth.GetUserID(r.Context())
 		if ownerID == 0 {
 			log.Error("owner ID cannot be empty")
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("failed to decode request body"))
 			return
 		}
@@ -48,6 +48,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 
 		if alias == "" {
 			log.Info("not found", sl.Err(repository.ErrUrlNotFound))
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("url not found"))
 			return
 		}
@@ -59,6 +60,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to decode request body"))
 			return
 		}
@@ -69,6 +71,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 			log.Error("invalid request", sl.Err(err))
 			validateErr := err.(validator.ValidationErrors)
 
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -86,13 +89,15 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		// }
 
 		err = urlUpdater.UpdateURL(ctx, alias, newURL, ownerID)
-		if err == repository.ErrUrlNotFound {
-			log.Info("url not found", slog.String("alias", alias))
-			render.JSON(w, r, response.Error("url not found"))
+		if err == repository.ErrAliasNotFound {
+			log.Info("alias not found", slog.String("alias", alias))
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("alias not found"))
 			return
 		}
 		if err != nil {
 			log.Error("failed to update url", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to update url"))
 			return
 		}

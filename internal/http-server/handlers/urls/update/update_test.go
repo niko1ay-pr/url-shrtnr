@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update/mocks"
+	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
 	"niko1ay-pr/url-shrtnr/internal/repository"
 	"strings"
@@ -20,56 +21,70 @@ import (
 )
 
 var cases = []struct {
-	name     string
-	alias    string
-	newAlias string
-	url      string
-	respErr  string
-	mockErr  error
+	name       string
+	ownerID    int64
+	alias      string
+	newURL     string
+	respErr    string
+	mockErr    error
+	statusCode int
 }{
 	{
-		name:     "Success",
-		alias:    "test_alias",
-		newAlias: "newalias",
-		url:      "https://google.com",
+		name:       "Success",
+		ownerID:    1,
+		alias:      "test_alias",
+		newURL:     "https://google.com",
+		statusCode: http.StatusOK,
 	},
 	{
-		name:    "Empty alias",
-		alias:   "",
-		respErr: "url not found",
+		name:       "Empty ownerID",
+		ownerID:    0,
+		alias:      "valid_alias",
+		newURL:     "https://google.com",
+		respErr:    "failed to decode request body",
+		statusCode: http.StatusBadRequest,
 	},
 	{
-		name:     "Empty new alias",
-		alias:    "test_alias",
-		newAlias: "",
-		url:      "https://google.com",
+		name:       "Empty alias",
+		ownerID:    1,
+		alias:      "",
+		respErr:    "url not found",
+		statusCode: http.StatusBadRequest,
+	},
+
+	{
+		name:       "Empty URL",
+		ownerID:    1,
+		alias:      "test_empty_url",
+		newURL:     "",
+		respErr:    "field URL is required",
+		statusCode: http.StatusBadRequest,
 	},
 	{
-		name:    "Empty URL",
-		alias:   "test_empty_url",
-		url:     "",
-		respErr: "field URL is required",
+		name:       "Invalid URL",
+		ownerID:    1,
+		alias:      "invalid_url",
+		newURL:     "invalid.url",
+		respErr:    "field URL is not a valid URL",
+		statusCode: http.StatusBadRequest,
 	},
 	{
-		name:    "Invalid URL",
-		alias:   "invalid_ulr",
-		url:     "invalid.url",
-		respErr: "field URL is not a valid URL",
+		name:       "UpdateURL error",
+		ownerID:    1,
+		alias:      "some_valid_alias",
+		newURL:     "https://google.com",
+		respErr:    "failed to update url",
+		mockErr:    errors.New("unexpected error"),
+		statusCode: http.StatusInternalServerError,
 	},
 	{
-		name:    "UpdateURL error",
-		alias:   "some_valid_alias",
-		url:     "https://google.com",
-		respErr: "failed to update url",
-		mockErr: errors.New("unexpected error"),
-	},
-	{
-		name:     "Url not found",
-		alias:    "any_alias",
-		newAlias: "any_another_alias",
-		url:      "https://google.com",
-		respErr:  "url not found",
-		mockErr:  repository.ErrUrlNotFound,
+		name:       "Alias not found",
+		ownerID:    1,
+		alias:      "any_alias",
+		newURL:     "https://google.com",
+		respErr:    "alias not found",
+		mockErr:    repository.ErrAliasNotFound,
+		statusCode: http.StatusInternalServerError,
 	},
 }
 
@@ -82,32 +97,41 @@ func TestUpdateHandler(t *testing.T) {
 			urlUpdaterMock := mocks.NewURLUpdater(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlUpdaterMock.On("UpdateURL", context.Background(), tc.url, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+				urlUpdaterMock.On("UpdateURL", context.Background(),
+					mock.AnythingOfType("string"),
+					mock.AnythingOfType("string"),
+					mock.AnythingOfType("int64")).
 					Return(tc.mockErr).Once()
 			}
 
 			handler := update.New(context.Background(), sldiscard.NewDescardLogger(), urlUpdaterMock)
 
-			input := fmt.Sprintf(`{"url": "%s", "new_alias": "%s"}`, tc.url, tc.newAlias)
+			input := fmt.Sprintf(`{"url": "%s"}`, tc.newURL)
 
 			req, err := http.NewRequest(http.MethodPut, "/url/{alias}", strings.NewReader(input))
 			require.NoError(t, err)
 
-			r := chi.NewRouteContext()
-			r.URLParams.Add("alias", tc.alias)
+			ctxWithID := jwtauth.ContextWithUserID(req.Context(), tc.ownerID)
 
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, r))
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("alias", tc.alias)
+
+			req = req.WithContext(context.WithValue(ctxWithID, chi.RouteCtxKey, rctx))
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
 
-			require.Equal(t, http.StatusOK, rr.Code)
+			require.Equal(t, tc.statusCode, rr.Code)
 
 			var resp update.Response
 
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 
-			require.Equal(t, tc.respErr, resp.Error)
+			if tc.respErr != "" {
+				require.Equal(t, tc.respErr, resp.Error)
+			} else {
+				require.Equal(t, tc.alias, resp.Alias)
+			}
 		})
 	}
 

@@ -20,11 +20,12 @@ import (
 )
 
 var cases = []struct {
-	name     string
-	entities []save.Entity
-	ownerID  int64
-	respErr  string
-	mockErr  error
+	name       string
+	entities   []save.Entity
+	ownerID    int64
+	respErr    string
+	mockErr    error
+	statusCode int
 }{
 	{
 		name: "Success One Entity",
@@ -34,7 +35,8 @@ var cases = []struct {
 				Alias: "test_alias",
 			},
 		},
-		ownerID: 1,
+		ownerID:    1,
+		statusCode: http.StatusOK,
 	},
 	{
 		name: "Success Multiple Entities",
@@ -48,17 +50,19 @@ var cases = []struct {
 				Alias: "another_test",
 			},
 		},
-		ownerID: 1,
+		ownerID:    1,
+		statusCode: http.StatusOK,
 	},
 	{
-		name: "Empty alias",
+		name: "Success empty alias",
 		entities: []save.Entity{
 			{
 				URL:   "https://google.com",
 				Alias: "",
 			},
 		},
-		ownerID: 1,
+		ownerID:    1,
+		statusCode: http.StatusOK,
 	},
 	{
 		name: "Empty URL",
@@ -68,8 +72,9 @@ var cases = []struct {
 				Alias: "test_empty_url",
 			},
 		},
-		ownerID: 1,
-		respErr: "field URL is required",
+		ownerID:    1,
+		respErr:    "field URL is required",
+		statusCode: http.StatusBadRequest,
 	},
 	{
 		name: "Invalid URL",
@@ -79,8 +84,9 @@ var cases = []struct {
 				Alias: "invalid_url",
 			},
 		},
-		ownerID: 1,
-		respErr: "field URL is not a valid URL",
+		ownerID:    1,
+		respErr:    "field URL is not a valid URL",
+		statusCode: http.StatusBadRequest,
 	},
 	{
 		name: "SaveURL error",
@@ -90,9 +96,10 @@ var cases = []struct {
 				Alias: "some_valid_alias",
 			},
 		},
-		ownerID: 1,
-		respErr: "failed to store url",
-		mockErr: errors.New("unexpected error"),
+		ownerID:    1,
+		respErr:    "failed to store url",
+		mockErr:    errors.New("unexpected error"),
+		statusCode: http.StatusInternalServerError,
 	},
 	{
 		name: "Alias already exists",
@@ -102,9 +109,10 @@ var cases = []struct {
 				Alias: "any_alias",
 			},
 		},
-		ownerID: 1,
-		respErr: "alias already exists",
-		mockErr: repository.ErrAliasExists,
+		ownerID:    1,
+		respErr:    "alias already exists",
+		mockErr:    repository.ErrAliasExists,
+		statusCode: http.StatusInternalServerError,
 	},
 }
 
@@ -140,12 +148,11 @@ func TestSaveHandler(t *testing.T) {
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
 
-			require.Equal(t, http.StatusOK, rr.Code)
+			require.Equal(t, tc.statusCode, rr.Code)
 
 			var resp save.Response
 
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-
 			require.Equal(t, tc.respErr, resp.Error)
 		})
 	}

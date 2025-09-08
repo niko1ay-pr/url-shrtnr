@@ -44,6 +44,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 		ownerID := jwtauth.GetUserID(r.Context())
 		if ownerID == 0 {
 			log.Error("owner ID cannot be empty")
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("failed to decode request body"))
 			return
 		}
@@ -52,6 +53,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to decode request body"))
 			return
 		}
@@ -61,6 +63,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 		if err != nil {
 			log.Error("invalid request", sl.Err(err))
 			validateErr := err.(validator.ValidationErrors)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidationError(validateErr))
 			return
 		}
@@ -73,6 +76,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 				alias, err = random.NewRandomString(repository.AliasLength)
 				if err != nil {
 					log.Error("failed to generate new alias", sl.Err(err))
+					render.Status(r, http.StatusInternalServerError)
 					render.JSON(w, r, response.Error("failed to generate new alias"))
 					return
 				}
@@ -80,12 +84,14 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerID)
 			if err == repository.ErrAliasExists {
 				log.Info("alias already exists", slog.String("alias", alias))
+				render.Status(r, http.StatusInternalServerError)
 				render.JSON(w, r, response.Error("alias already exists"))
 				return
 
 			}
 			if err != nil {
 				log.Error("failed to store url", sl.Err(err))
+				render.Status(r, http.StatusInternalServerError)
 				render.JSON(w, r, response.Error("failed to store url"))
 				return
 			}
@@ -95,6 +101,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 		}
 
 		resp.Response = response.Ok()
+		render.Status(r, http.StatusOK)
 		render.JSON(w, r, resp)
 	}
 

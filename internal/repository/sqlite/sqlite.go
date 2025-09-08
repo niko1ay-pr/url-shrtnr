@@ -132,7 +132,7 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, url string, owner
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
-		return repository.ErrUrlNotFound
+		return repository.ErrAliasNotFound
 	}
 
 	stmt, err := s.db.PrepareContext(ctx, "UPDATE urls SET url = ? WHERE alias = ?;")
