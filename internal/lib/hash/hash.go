@@ -11,13 +11,17 @@ const SaltSize = 16
 
 func HashPassword(password string, salt string) (string, error) {
 	const op = "lib.hash.HashPassword"
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password+salt), bcrypt.DefaultCost)
+	bytes, err := GenerateHash(password, salt)
 
 	if err != nil {
 		return "", fmt.Errorf("%s: %v", op, err)
 	}
 
 	return string(bytes), nil
+}
+
+func GenerateHash(password string, salt string) ([]byte, error) {
+	return bcrypt.GenerateFromPassword([]byte(password+salt), bcrypt.DefaultCost)
 }
 
 func CheckPasswordHash(hashedPass string, password string) (bool, error) {
