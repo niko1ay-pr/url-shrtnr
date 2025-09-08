@@ -84,12 +84,13 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 	}
 
 	t.Log("Test redirecting URL")
+	// TODO: check redirection without request to real external source
 	e.GET("/url/" + aliases[0]).Expect().Status(http.StatusFound).Header("Location").NotEmpty()
 
 	t.Log("Updating URL")
 	newURL := gofakeit.URL()
 	respUpdate := e.PUT("/url/"+aliases[0]).WithJSON(update.Request{URL: newURL}).
-		WithHeader("Authorization", "Bearer: "+token).
+		WithHeader("Authorization", "Bearer "+token).
 		Expect().Status(http.StatusOK).JSON().Object()
 	respUpdate.Value("url").String().IsEqual(newURL)
 	respUpdate.Value("alias").String().IsEqual(aliases[0])
@@ -97,7 +98,7 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 	t.Log("Deleting URLs")
 	for _, alias := range aliases {
 		deleteResp := e.DELETE("/url/"+alias).
-			WithHeader("Authorization", "Bearer: "+token).
+			WithHeader("Authorization", "Bearer "+token).
 			Expect().Status(http.StatusOK).JSON().Object()
 		deleteResp.Value("status").String().IsEqual("Ok")
 	}
