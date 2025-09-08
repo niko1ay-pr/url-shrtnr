@@ -78,7 +78,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 				}
 			}
 			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerID)
-			if err == repository.ErrUrlExists {
+			if err == repository.ErrAliasExists {
 				log.Info("alias already exists", slog.String("alias", alias))
 				render.JSON(w, r, response.Error("alias already exists"))
 				return

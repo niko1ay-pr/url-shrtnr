@@ -95,7 +95,7 @@ var cases = []struct {
 		mockErr: errors.New("unexpected error"),
 	},
 	{
-		name: "Url already exists",
+		name: "Alias already exists",
 		entities: []save.Entity{
 			{
 				URL:   "https://google.com",
@@ -103,8 +103,8 @@ var cases = []struct {
 			},
 		},
 		ownerID: 1,
-		respErr: "url already exists",
-		mockErr: repository.ErrUrlExists,
+		respErr: "alias already exists",
+		mockErr: repository.ErrAliasExists,
 	},
 }
 
