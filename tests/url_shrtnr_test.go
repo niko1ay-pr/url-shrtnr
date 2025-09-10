@@ -14,9 +14,7 @@ import (
 )
 
 const (
-	host         = "localhost:8080"
-	testEmail    = "valid@example.com"
-	testPassword = "validPassword123"
+	host = "localhost:8080"
 )
 
 func TestUrlShrtnr_HappyPath(t *testing.T) {
@@ -25,16 +23,26 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 		Scheme: "http",
 		Host:   host,
 	}
+	customClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 
-	e := httpexpect.Default(t, u.String())
+	e := httpexpect.WithConfig(httpexpect.Config{
+		BaseURL:  u.String(),
+		Client:   customClient,
+		Reporter: httpexpect.NewAssertReporter(t),
+	})
+
 	randStr, err := random.NewRandomString(6)
 	if err != nil {
 		return
 	}
 
 	req := register.Request{
-		Email:    testEmail,
-		Password: testPassword,
+		Email:    "test_" + gofakeit.Email(),
+		Password: gofakeit.Password(true, true, false, false, false, 8),
 	}
 
 	t.Log("Registering new user")
@@ -75,28 +83,40 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 	entities.Length().IsEqual(2)
 
 	// Store aliases for further deleting
-	var aliases []string
+	aliases := make(map[string]string)
 	for i := range int(entities.Length().Raw()) {
 		entity := entities.Value(i).Object()
-		entity.Value("url").String().NotEmpty()
+		url := entity.Value("url").String().NotEmpty().Raw()
 		alias := entity.Value("alias").String().NotEmpty().Raw()
-		aliases = append(aliases, alias)
+		aliases[alias] = url
 	}
 
 	t.Log("Test redirecting URL")
-	// TODO: check redirection without request to real external source
-	e.GET("/url/" + aliases[0]).Expect().Status(http.StatusFound).Header("Location").NotEmpty()
+	// check redirection without request to real external source
+	var alias string
+	var url string
+
+	for a, u := range aliases {
+		alias = a
+		url = u
+		break
+	}
+	e.GET("/url/" + alias).
+		Expect().
+		Status(http.StatusFound).
+		Header("Location").
+		IsEqual(url)
 
 	t.Log("Updating URL")
 	newURL := gofakeit.URL()
-	respUpdate := e.PUT("/url/"+aliases[0]).WithJSON(update.Request{URL: newURL}).
+	respUpdate := e.PUT("/url/"+alias).WithJSON(update.Request{URL: newURL}).
 		WithHeader("Authorization", "Bearer "+token).
 		Expect().Status(http.StatusOK).JSON().Object()
 	respUpdate.Value("url").String().IsEqual(newURL)
-	respUpdate.Value("alias").String().IsEqual(aliases[0])
+	respUpdate.Value("alias").String().IsEqual(alias)
 
 	t.Log("Deleting URLs")
-	for _, alias := range aliases {
+	for alias, _ := range aliases {
 		deleteResp := e.DELETE("/url/"+alias).
 			WithHeader("Authorization", "Bearer "+token).
 			Expect().Status(http.StatusOK).JSON().Object()

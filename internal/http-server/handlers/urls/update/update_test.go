@@ -86,6 +86,9 @@ var cases = []struct {
 		mockErr:    repository.ErrAliasNotFound,
 		statusCode: http.StatusInternalServerError,
 	},
+	{
+		//TODO: trying to update foreign url
+	},
 }
 
 func TestUpdateHandler(t *testing.T) {
