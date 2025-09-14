@@ -44,7 +44,8 @@ func New(ctx context.Context, storagePath string) (*Storage, error) {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    salt TEXT);
+    salt TEXT,
+    refresh_token TEXT);
 	`)
 
 	if err != nil {
@@ -223,4 +224,20 @@ func (s *Storage) GetUserHash(ctx context.Context, email string) (*models.User, 
 	}
 
 	return &models.User{Id: userId, Password: hashedPass, Salt: salt}, nil
+}
+
+func (s *Storage) StoreRefreshToken(ctx context.Context, refreshToken *models.RefreshToken) error {
+	const op = "repository.sqlite.StoreRefreshToken"
+
+	stmt, err := s.db.PrepareContext(ctx, `UPDATE users SET refresh_token = ? WHERE id = ?;`)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, refreshToken.Token, refreshToken.Id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }

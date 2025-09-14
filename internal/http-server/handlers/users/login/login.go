@@ -8,6 +8,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/hash"
 	"niko1ay-pr/url-shrtnr/internal/lib/jwt"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
+	"niko1ay-pr/url-shrtnr/internal/lib/random"
 	"niko1ay-pr/url-shrtnr/internal/models"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,8 +23,15 @@ type Request struct {
 
 type Response struct {
 	response.Response
-	Token string `json:"token"`
-	Email string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	Email        string `json:"email"`
+}
+
+//go:generate go run github.com/vektra/mockery/v2@latest --name=LoginStorage
+type LoginStorage interface {
+	UserHashGetter
+	RefreshTokenStorer
 }
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=UserHashGetter
@@ -31,7 +39,12 @@ type UserHashGetter interface {
 	GetUserHash(context.Context, string) (*models.User, error)
 }
 
-func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secret []byte) http.HandlerFunc {
+//go:generate go run github.com/vektra/mockery/v2@latest --name=RefreshTokenStorer
+type RefreshTokenStorer interface {
+	StoreRefreshToken(context.Context, *models.RefreshToken) error
+}
+
+func New(ctx context.Context, log *slog.Logger, loginStorage LoginStorage, secret []byte) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.users.login.New"
 		log = log.With(slog.String("op", op),
@@ -54,7 +67,7 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 			return
 		}
 
-		user, err := hashGetter.GetUserHash(ctx, req.Email)
+		user, err := loginStorage.GetUserHash(ctx, req.Email)
 		if err != nil {
 			log.Error("failed to login user", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)
@@ -76,16 +89,39 @@ func New(ctx context.Context, log *slog.Logger, hashGetter UserHashGetter, secre
 
 		signedString, err := jwt.GenerateToken(log, secret, user.Id, user.Email)
 		if err != nil {
+			log.Error("failed to login user", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to login user"))
 			return
 		}
+
+		// Getting refresh-token and store it in Users table
+		rtString, err := random.NewRandomString(32)
+		if err != nil {
+			log.Error("failed to login user", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to get refresh token"))
+			return
+		}
+		refreshToken := &models.RefreshToken{
+			Id:    user.Id,
+			Token: rtString,
+		}
+		err = loginStorage.StoreRefreshToken(ctx, refreshToken)
+		if err != nil {
+			log.Error("failed to login user", sl.Err(err))
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to get refresh token"))
+			return
+		}
+
 		log.Debug("user is logged in", slog.String("email", user.Email), slog.String("token", signedString))
 
 		render.JSON(w, r, Response{
-			Response: response.Ok(),
-			Email:    req.Email,
-			Token:    signedString,
+			Response:     response.Ok(),
+			Email:        req.Email,
+			RefreshToken: refreshToken.Token,
+			Token:        signedString,
 		})
 	}
 

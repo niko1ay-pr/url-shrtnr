@@ -19,13 +19,14 @@ import (
 )
 
 var loginCases = []struct {
-	name         string
-	email        string
-	password     string
-	expectedErr  string
-	mockUser     *models.User
-	mockErr      error
-	expectStatus int
+	name               string
+	email              string
+	password           string
+	expectedHashErr    string
+	mockUser           *models.User
+	mockErr            error
+	expectHashStatus   int
+	expectedRTStoreErr string
 }{
 	{
 		name:     "Success login",
@@ -37,20 +38,20 @@ var loginCases = []struct {
 			Password: "",
 			Salt:     "123",
 		},
-		expectStatus: http.StatusOK,
+		expectHashStatus: http.StatusOK,
 	},
 	{
-		name:         "Invalid email",
-		email:        "invalid-email",
-		password:     "123passWord",
-		expectedErr:  "field Email is not valid",
-		expectStatus: http.StatusBadRequest,
+		name:             "Invalid email",
+		email:            "invalid-email",
+		password:         "123passWord",
+		expectedHashErr:  "field Email is not valid",
+		expectHashStatus: http.StatusBadRequest,
 	},
 	{
-		name:         "Empty password",
-		email:        "example@gmail.com",
-		expectedErr:  "field Password is required",
-		expectStatus: http.StatusBadRequest,
+		name:             "Empty password",
+		email:            "example@gmail.com",
+		expectedHashErr:  "field Password is required",
+		expectHashStatus: http.StatusBadRequest,
 	},
 	{
 		name:     "Wrong password",
@@ -62,16 +63,16 @@ var loginCases = []struct {
 			Password: "HashedPassword",
 			Salt:     "anysalt",
 		},
-		expectStatus: http.StatusInternalServerError,
-		expectedErr:  "failed to login user",
+		expectHashStatus: http.StatusInternalServerError,
+		expectedHashErr:  "failed to login user",
 	},
 	{
-		name:         "User already exists",
-		email:        "existinguser@example.com",
-		password:     "123passWord",
-		mockErr:      repository.ErrUserExists,
-		expectedErr:  "failed to login user",
-		expectStatus: http.StatusInternalServerError,
+		name:             "User already exists",
+		email:            "existinguser@example.com",
+		password:         "123passWord",
+		mockErr:          repository.ErrUserExists,
+		expectedHashErr:  "failed to login user",
+		expectHashStatus: http.StatusInternalServerError,
 	},
 }
 
@@ -81,20 +82,25 @@ func TestLoginHandler(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			userHashGetterMock := mocks.NewUserHashGetter(t)
+			loginStorageMock := mocks.NewLoginStorage(t)
 			if tc.mockUser != nil && tc.mockErr == nil {
 				if tc.mockUser.Password == "" {
 					generatedHash, _ := hash.GenerateHash(tc.password, tc.mockUser.Salt)
 					tc.mockUser.Password = string(generatedHash)
 				}
-				userHashGetterMock.On("GetUserHash", mock.Anything, tc.email).
+				loginStorageMock.On("GetUserHash", mock.Anything, tc.email).
 					Return(tc.mockUser, nil).Once()
 			} else if tc.mockErr != nil {
-				userHashGetterMock.On("GetUserHash", mock.Anything, tc.email).
+				loginStorageMock.On("GetUserHash", mock.Anything, tc.email).
 					Return(nil, tc.mockErr).Once()
 			}
+			if tc.expectedHashErr == "" {
+				loginStorageMock.On("StoreRefreshToken", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).
+					Return(nil).Once()
+			}
+
 			secret := []byte("test-secret")
-			handler := login.New(context.Background(), sldiscard.NewDescardLogger(), userHashGetterMock, secret)
+			handler := login.New(context.Background(), sldiscard.NewDescardLogger(), loginStorageMock, secret)
 
 			requestBody := map[string]string{
 				"email":    tc.email,
@@ -107,23 +113,23 @@ func TestLoginHandler(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)
-			require.Equal(t, tc.expectStatus, rr.Code)
+			require.Equal(t, tc.expectHashStatus, rr.Code)
 
 			var resp login.Response
 			err = json.Unmarshal(rr.Body.Bytes(), &resp)
 
 			require.NoError(t, err)
 
-			if tc.expectedErr != "" {
+			if tc.expectedHashErr != "" {
 
-				require.Contains(t, resp.Error, tc.expectedErr)
+				require.Contains(t, resp.Error, tc.expectedHashErr)
 			} else {
 				require.NotEmpty(t, resp.Token)
+				require.NotEmpty(t, resp.RefreshToken)
 				require.Empty(t, resp.Error)
 				require.Equal(t, resp.Email, tc.email)
 			}
 
-			userHashGetterMock.AssertExpectations(t)
 		})
 	}
 }
