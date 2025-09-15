@@ -56,6 +56,7 @@ func New(ctx context.Context, log *slog.Logger, loginStorage LoginStorage, secre
 			log.Error("failed to decode request body", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to decode request body"))
+			return
 		}
 		log.Debug("request body decoded", slog.Any("request", req))
 		err = validator.New().Struct(req)

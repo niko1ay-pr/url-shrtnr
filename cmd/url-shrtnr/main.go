@@ -11,6 +11,7 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/save"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/update"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/login"
+	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/refresh"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/users/register"
 	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
@@ -58,6 +59,7 @@ func main() {
 	// public routes
 	router.Post("/users/register", register.New(ctx, log, storage))
 	router.Post("/users/login", login.New(ctx, log, storage, config.JWTSecret))
+	router.Post("/users/refresh", refresh.New(ctx, log, storage, config.JWTSecret))
 	router.Get("/url/{alias}", redirect.New(ctx, log, storage))
 
 	// protected routes

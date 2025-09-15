@@ -1,7 +1,7 @@
 package models
 
 type User struct {
-	Id       int
+	Id       int64
 	Email    string
 	Password string
 	Salt     string
@@ -13,7 +13,7 @@ type UrlEntity struct {
 }
 
 type RefreshToken struct {
-	Id    int
+	Id    int64
 	Token string
 	// TODO: add expired_at
 }

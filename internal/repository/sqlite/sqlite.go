@@ -212,7 +212,7 @@ func (s *Storage) GetUserHash(ctx context.Context, email string) (*models.User, 
 	}
 	defer stmt.Close()
 
-	var userId int
+	var userId int64
 	var hashedPass string
 	var salt string
 	err = stmt.QueryRowContext(ctx, email).Scan(&userId, &hashedPass, &salt)
@@ -240,4 +240,19 @@ func (s *Storage) StoreRefreshToken(ctx context.Context, refreshToken *models.Re
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
+}
+
+func (s *Storage) GetRefreshToken(ctx context.Context, id int64) (*models.RefreshToken, error) {
+
+	const op = "repository.sqlite.GetRefreshToken"
+	var refreshToken string
+	err := s.db.QueryRowContext(ctx, `SELECT refresh_token FROM users WHERE id = ?;`).Scan(&refreshToken)
+	if err == sql.ErrNoRows {
+		return nil, repository.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &models.RefreshToken{Id: id, Token: refreshToken}, nil
 }

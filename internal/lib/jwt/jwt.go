@@ -22,7 +22,7 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(log *slog.Logger, secret []byte, UserID int, UserEmail string) (string, error) {
+func GenerateToken(log *slog.Logger, secret []byte, UserID int64, UserEmail string) (string, error) {
 	token := jwt.NewWithClaims(DefaultSigningMethod, &CustomClaims{
 		int64(UserID),
 		jwt.RegisteredClaims{
