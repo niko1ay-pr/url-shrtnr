@@ -246,7 +246,7 @@ func (s *Storage) GetRefreshToken(ctx context.Context, id int64) (*models.Refres
 
 	const op = "repository.sqlite.GetRefreshToken"
 	var refreshToken string
-	err := s.db.QueryRowContext(ctx, `SELECT refresh_token FROM users WHERE id = ?;`).Scan(&refreshToken)
+	err := s.db.QueryRowContext(ctx, `SELECT refresh_token FROM users WHERE id = ?;`, id).Scan(&refreshToken)
 	if err == sql.ErrNoRows {
 		return nil, repository.ErrUserNotFound
 	}

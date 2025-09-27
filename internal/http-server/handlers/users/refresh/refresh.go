@@ -27,6 +27,7 @@ type Response struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=RefreshTokenGetStorer
 type RefreshTokenGetStorer interface {
 	RefreshTokenGetter
 	RefreshTokenStorer
@@ -77,7 +78,7 @@ func New(ctx context.Context, log *slog.Logger, storage RefreshTokenGetStorer, s
 		}
 		// compare with one from request
 		if token.Token != req.RefreshToken {
-			log.Error("token isn't valid", sl.Err(err))
+			log.Error("stored and posted tokens not matching")
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("failed to refresh token"))
 			return
