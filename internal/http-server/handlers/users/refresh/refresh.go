@@ -22,6 +22,7 @@ type Request struct {
 }
 
 type Response struct {
+	response.Response
 	Id           int64  `json:"id" validate:"required"`
 	Token        string `json:"token" validate:"required"`
 	RefreshToken string `json:"refresh_token" validate:"required"`

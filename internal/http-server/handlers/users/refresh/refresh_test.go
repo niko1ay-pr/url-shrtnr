@@ -23,6 +23,7 @@ var testCases = []struct {
 	request          refresh.Request
 	mockSetup        mockSetup
 	expectedStatus   int
+	expectedErr      string
 	validateResponse func(*testing.T, *httptest.ResponseRecorder)
 }{
 	{name: "Success refresh",
@@ -38,14 +39,6 @@ var testCases = []struct {
 				Return(nil).Once()
 		},
 		expectedStatus: http.StatusOK,
-		validateResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
-			var resp refresh.Response
-			err := json.Unmarshal(rr.Body.Bytes(), &resp)
-			require.NoError(t, err)
-			require.NotEmpty(t, resp.Token)
-			require.NotEmpty(t, resp.RefreshToken)
-			require.Equal(t, int64(1), resp.Id)
-		},
 	},
 	{name: "Refresh token not match",
 		request: refresh.Request{
@@ -58,14 +51,14 @@ var testCases = []struct {
 				Return(&models.RefreshToken{Id: 1, Token: "ValidRefreshToken"}, nil).Once()
 		},
 		expectedStatus: http.StatusBadRequest,
-		validateResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
-		},
+		expectedErr:    "failed to refresh token",
 	},
 	{name: "Required fields missed",
 		request: refresh.Request{
 			Id: 1,
 		},
 		expectedStatus: http.StatusBadRequest,
+		expectedErr:    "field Email is not valid, field RefreshToken is required",
 	},
 	{name: "Negative Id",
 		request: refresh.Request{
@@ -74,6 +67,7 @@ var testCases = []struct {
 			RefreshToken: "InvalidRefreshToken",
 		},
 		expectedStatus: http.StatusBadRequest,
+		expectedErr:    "field Id is not valid",
 	},
 }
 
@@ -101,10 +95,18 @@ func TestRefreshHandler(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 			require.Equal(t, tc.expectedStatus, rr.Code)
 
-			if tc.validateResponse != nil {
-				tc.validateResponse(t, rr)
+			var resp refresh.Response
+			err = json.Unmarshal(rr.Body.Bytes(), &resp)
+			if tc.expectedErr != "" {
+				require.Equal(t, tc.expectedErr, resp.Error)
+			} else {
+				require.NoError(t, err)
+				require.Empty(t, resp.Error)
+				require.NotEmpty(t, resp.Token)
+				require.NotEmpty(t, resp.RefreshToken)
+				require.Equal(t, int64(1), resp.Id)
+				storageMock.AssertExpectations(t)
 			}
-			storageMock.AssertExpectations(t)
 		})
 	}
 

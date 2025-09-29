@@ -112,7 +112,7 @@ func TestLoginHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			if tc.expectedErr != "" {
-				require.Equal(t, tc.expectedErr, resp.Response.Error)
+				require.Equal(t, tc.expectedErr, resp.Error)
 			} else {
 				require.Empty(t, resp.Error)
 				require.NotEmpty(t, resp.Token)
