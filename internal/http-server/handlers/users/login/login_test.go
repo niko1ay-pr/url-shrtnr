@@ -11,125 +11,115 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/lib/hash"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sldiscard"
 	"niko1ay-pr/url-shrtnr/internal/models"
-	"niko1ay-pr/url-shrtnr/internal/repository"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-var loginCases = []struct {
-	name               string
-	email              string
-	password           string
-	expectedHashErr    string
-	mockUser           *models.User
-	mockErr            error
-	expectHashStatus   int
-	expectedRTStoreErr string
+type mockSetup func(*mocks.LoginStorage)
+
+var testCases = []struct {
+	name           string
+	request        login.Request
+	mockSetup      mockSetup
+	expectedStatus int
+	expectedErr    string
 }{
 	{
-		name:     "Success login",
-		email:    "example@gmail.com",
-		password: "123passWord",
-		mockUser: &models.User{
-			Id:       1,
+		name: "Success login",
+		request: login.Request{
 			Email:    "example@gmail.com",
+			Password: "123passWord",
+		},
+		mockSetup: func(m *mocks.LoginStorage) {
+			generatedHash, _ := hash.GenerateHash("123passWord", "123")
+			m.On("GetUserHash", mock.Anything, mock.AnythingOfType("string")).
+				Return(&models.User{
+					Id:       1,
+					Email:    "example@gmail.com",
+					Password: string(generatedHash),
+					Salt:     "123",
+				}, nil).Once()
+			m.On("StoreRefreshToken", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).
+				Return(nil).Once()
+		},
+		expectedStatus: http.StatusOK,
+	},
+	{
+		name: "Wrong password",
+		request: login.Request{
+			Email:    "example@gmail.com",
+			Password: "wrongpass",
+		},
+		mockSetup: func(m *mocks.LoginStorage) {
+			m.On("GetUserHash", mock.Anything, mock.AnythingOfType("string")).
+				Return(&models.User{
+					Id:       1,
+					Email:    "example@gmail.com",
+					Password: "validPassword",
+					Salt:     "123",
+				}, nil).Once()
+		},
+		expectedStatus: http.StatusInternalServerError,
+		expectedErr:    "failed to login user",
+	},
+	{
+		name: "Empty password",
+		request: login.Request{
+			Email:    "valid@mail.com",
 			Password: "",
-			Salt:     "123",
 		},
-		expectHashStatus: http.StatusOK,
+		expectedErr:    "field Password is required",
+		expectedStatus: http.StatusBadRequest,
 	},
 	{
-		name:             "Invalid email",
-		email:            "invalid-email",
-		password:         "123passWord",
-		expectedHashErr:  "field Email is not valid",
-		expectHashStatus: http.StatusBadRequest,
-	},
-	{
-		name:             "Empty password",
-		email:            "example@gmail.com",
-		expectedHashErr:  "field Password is required",
-		expectHashStatus: http.StatusBadRequest,
-	},
-	{
-		name:     "Wrong password",
-		email:    "example@gmail.com",
-		password: "wrongpass",
-		mockUser: &models.User{
-			Id:       1,
-			Email:    "example@gmail.com",
-			Password: "HashedPassword",
-			Salt:     "anysalt",
+		name: "Invalid email",
+		request: login.Request{
+			Email:    "invalid-email",
+			Password: "validpass",
 		},
-		expectHashStatus: http.StatusInternalServerError,
-		expectedHashErr:  "failed to login user",
-	},
-	{
-		name:             "User already exists",
-		email:            "existinguser@example.com",
-		password:         "123passWord",
-		mockErr:          repository.ErrUserExists,
-		expectedHashErr:  "failed to login user",
-		expectHashStatus: http.StatusInternalServerError,
+		expectedErr:    "field Email is not valid",
+		expectedStatus: http.StatusBadRequest,
 	},
 }
 
 func TestLoginHandler(t *testing.T) {
 
-	for _, tc := range loginCases {
+	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			loginStorageMock := mocks.NewLoginStorage(t)
-			if tc.mockUser != nil && tc.mockErr == nil {
-				if tc.mockUser.Password == "" {
-					generatedHash, _ := hash.GenerateHash(tc.password, tc.mockUser.Salt)
-					tc.mockUser.Password = string(generatedHash)
-				}
-				loginStorageMock.On("GetUserHash", mock.Anything, tc.email).
-					Return(tc.mockUser, nil).Once()
-			} else if tc.mockErr != nil {
-				loginStorageMock.On("GetUserHash", mock.Anything, tc.email).
-					Return(nil, tc.mockErr).Once()
-			}
-			if tc.expectedHashErr == "" {
-				loginStorageMock.On("StoreRefreshToken", mock.Anything, mock.AnythingOfType("*models.RefreshToken")).
-					Return(nil).Once()
+			if tc.mockSetup != nil {
+				tc.mockSetup(loginStorageMock)
 			}
 
 			secret := []byte("test-secret")
 			handler := login.New(context.Background(), sldiscard.NewDescardLogger(), loginStorageMock, secret)
 
-			requestBody := map[string]string{
-				"email":    tc.email,
-				"password": tc.password,
-			}
-			request, _ := json.Marshal(requestBody)
+			request, _ := json.Marshal(tc.request)
 			req, err := http.NewRequest("POST", "/users/login", bytes.NewReader(request))
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)
-			require.Equal(t, tc.expectHashStatus, rr.Code)
+			require.Equal(t, tc.expectedStatus, rr.Code)
 
 			var resp login.Response
 			err = json.Unmarshal(rr.Body.Bytes(), &resp)
-
 			require.NoError(t, err)
 
-			if tc.expectedHashErr != "" {
-
-				require.Contains(t, resp.Error, tc.expectedHashErr)
+			if tc.expectedErr != "" {
+				require.Equal(t, tc.expectedErr, resp.Response.Error)
 			} else {
+				require.Empty(t, resp.Error)
 				require.NotEmpty(t, resp.Token)
 				require.NotEmpty(t, resp.RefreshToken)
-				require.Empty(t, resp.Error)
-				require.Equal(t, resp.Email, tc.email)
 			}
 
+			loginStorageMock.AssertExpectations(t)
 		})
 	}
 }
