@@ -16,7 +16,7 @@ import (
 )
 
 type Request struct {
-	Id           int64  `json:"id" validate:"required"`
+	Id           int64  `json:"id" validate:"required,gt=0"`
 	Email        string `json:"email" validate:"email,required"`
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }

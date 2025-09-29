@@ -21,7 +21,6 @@ var registerCases = []struct {
 	requireCall    bool
 	email          string
 	password       string
-	salt           string
 	expectedErr    string
 	mockErr        error
 	expectedStatus int
