@@ -18,6 +18,9 @@ const (
 )
 
 func TestUrlShrtnr_HappyPath(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 
 	u := url.URL{
 		Scheme: "http",
@@ -127,7 +130,9 @@ func TestUrlShrtnr_HappyPath(t *testing.T) {
 }
 
 func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
-
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	return
 	cases := []struct {
 		name     string
@@ -216,6 +221,10 @@ func TestUrlShrtnr_SaveRedirectDelete(t *testing.T) {
 }
 
 func TestUrlShrtnr_UnauthorizedAccess(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	u := url.URL{
 		Scheme: "http",
 		Host:   host,
