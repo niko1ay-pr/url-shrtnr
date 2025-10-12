@@ -8,6 +8,6 @@ http_server:
   password: "adminpass"
 redis:
   address: "localhost:6379"
-  password: "redispassword"
+  password: ""
   db: 0
   ttl: 24h

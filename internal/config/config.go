@@ -26,7 +26,7 @@ type HTTPServer struct {
 
 type Redis struct {
 	Address  string        `yaml:"address" env-default:"localhost:6379"`
-	Password string        `yaml:"password" env-required:"true"`
+	Password string        `yaml:"password"`
 	DB       int           `yaml:"db" env-default:"0"`
 	TTL      time.Duration `yaml:"ttl" env-default:"24h"`
 }
@@ -56,5 +56,9 @@ func MustLoad() *Config {
 	}
 
 	config.JWTSecret = []byte(jwtSecret)
+
+	if config.Env != "local" && config.Redis.Password == "" {
+		log.Fatal("Redis password could not be empty")
+	}
 	return &config
 }

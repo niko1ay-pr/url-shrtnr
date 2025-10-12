@@ -14,13 +14,14 @@ type Storage struct {
 	ttl time.Duration
 }
 
-func New(ctx context.Context, ttl time.Duration) (*Storage, error) {
+func New(ctx context.Context, addr string, password string, dbID int, ttl time.Duration) (*Storage, error) {
 
 	const op = "repository.redissstore.New"
 
 	db := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-		DB:   0,
+		Addr:     addr,
+		Password: password,
+		DB:       dbID,
 	})
 	err := db.Ping(context.Background()).Err()
 	if err != nil {
@@ -45,10 +46,10 @@ func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string) e
 	return nil
 }
 
-func (s *Storage) GetURL(ctx context.Context, urlToGet string) (string, error) {
+func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	const op = "repository.redisstore.GetURL"
 
-	url, err := s.db.Get(ctx, urlToGet).Result()
+	url, err := s.db.Get(ctx, alias).Result()
 	if err == redis.Nil {
 		return "", fmt.Errorf("%s: %v", op, repository.ErrUrlNotFound)
 	} else if err != nil {
