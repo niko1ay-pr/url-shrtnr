@@ -47,7 +47,7 @@ func main() {
 
 	storage, err := sqlite.New(ctx, config.StoragePath)
 
-	redisStorage, err := redisstore.New(ctx)
+	redisStorage, err := redisstore.New(ctx, config.Redis.TTL)
 	if err != nil {
 		log.Error("Error storage init:", sl.Err(err))
 		os.Exit(1)

@@ -28,3 +28,4 @@ go.work.sum
 .zed/
 .DS_Store
 storage/
+.rdb
