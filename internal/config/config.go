@@ -12,6 +12,7 @@ type Config struct {
 	Env         string `yaml:"env" env-default:"local"`
 	StoragePath string `yaml:"storage_path" env-required:"true"`
 	HTTPServer  `yaml:"http_server"`
+	Redis       `yaml:"redis"`
 	JWTSecret   []byte
 }
 
@@ -21,6 +22,13 @@ type HTTPServer struct {
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"1m"`
 	User        string        `yaml:"user" env-required:"true"`
 	Password    string        `yaml:"password" env-required:"true" env:"HTTP_SERVER_PASSWORD"`
+}
+
+type Redis struct {
+	Address  string        `yaml:"address" env-default:"localhost:6379"`
+	Password string        `yaml:"password" env-required:"true"`
+	DB       int           `yaml:"db" env-default:"0"`
+	TTL      time.Duration `yaml:"ttl" env-default:"24h"`
 }
 
 func MustLoad() *Config {

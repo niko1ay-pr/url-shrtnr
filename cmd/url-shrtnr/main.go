@@ -16,6 +16,8 @@ import (
 	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	mwlogger "niko1ay-pr/url-shrtnr/internal/http-server/middleware/logger"
 	sl "niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
+	"niko1ay-pr/url-shrtnr/internal/repository/cached"
+	"niko1ay-pr/url-shrtnr/internal/repository/redisstore"
 	"niko1ay-pr/url-shrtnr/internal/repository/sqlite"
 	"os"
 	"os/signal"
@@ -45,10 +47,13 @@ func main() {
 
 	storage, err := sqlite.New(ctx, config.StoragePath)
 
+	redisStorage, err := redisstore.New(ctx)
 	if err != nil {
 		log.Error("Error storage init:", sl.Err(err))
 		os.Exit(1)
 	}
+
+	cachedStorage := cached.New(ctx, storage, redisStorage, config.TTL)
 
 	router := chi.NewRouter()
 	router.Use(mwlogger.New(log))
@@ -60,22 +65,20 @@ func main() {
 	router.Post("/users/register", register.New(ctx, log, storage))
 	router.Post("/users/login", login.New(ctx, log, storage, config.JWTSecret))
 	router.Post("/users/refresh", refresh.New(ctx, log, storage, config.JWTSecret))
-	router.Get("/url/{alias}", redirect.New(ctx, log, storage))
+	router.Get("/url/{alias}", redirect.New(ctx, log, cachedStorage))
 
 	// protected routes
 	router.Group(func(protected chi.Router) {
 		protected.Use(jwtauth.ExtractClaims(config.JWTSecret))
 
 		protected.Route("/url", func(r chi.Router) {
-			r.Delete("/{alias}", delete.New(ctx, log, storage))
-			r.Post("/", save.New(ctx, log, storage))
-			r.Put("/{alias}", update.New(ctx, log, storage))
+			r.Delete("/{alias}", delete.New(ctx, log, cachedStorage))
+			r.Post("/", save.New(ctx, log, cachedStorage))
+			r.Put("/{alias}", update.New(ctx, log, cachedStorage))
 		})
-		protected.Get("/urls", all.New(ctx, log, storage))
+		protected.Get("/urls", all.New(ctx, log, cachedStorage))
 	})
 
-	// TODO: /users/refresh
-	// router.POST("/users/refresh", refresh.New(ctx, log, storage))
 	s := http.Server{
 		Handler:     router,
 		Addr:        config.HTTPServer.Address,

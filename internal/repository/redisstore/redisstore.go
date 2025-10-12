@@ -12,9 +12,9 @@ type Storage struct {
 	db *redis.Client
 }
 
-func New() (*Storage, error) {
+func New(ctx context.Context) (*Storage, error) {
 
-	const op = "repository.redisstore.New"
+	const op = "repository.redissstore.New"
 
 	db := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
@@ -27,7 +27,7 @@ func New() (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveURL(urlToSave string, alias string) error {
+func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string) error {
 	const op = "repository.redisstore.SaveURL"
 
 	_, err := s.db.Get(context.Background(), urlToSave).Result()
@@ -45,7 +45,7 @@ func (s *Storage) SaveURL(urlToSave string, alias string) error {
 	return nil
 }
 
-func (s *Storage) GetURL(urlToGet string) (string, error) {
+func (s *Storage) GetURL(ctx context.Context, urlToGet string) (string, error) {
 	const op = "repository.redisstore.GetURL"
 	url, err := s.db.Get(context.Background(), urlToGet).Result()
 	if err == redis.Nil {

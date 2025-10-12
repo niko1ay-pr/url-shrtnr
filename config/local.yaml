@@ -6,3 +6,8 @@ http_server:
   idle_timeout: 45s
   user: "admin"
   password: "adminpass"
+redis:
+  address: "localhost:6379"
+  password: "redispassword"
+  db: 0
+  ttl: 24h
