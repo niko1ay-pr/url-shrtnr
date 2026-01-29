@@ -76,7 +76,7 @@ func (c *CachedStorage) GetURL(ctx context.Context, alias string) (string, error
 	return url, nil
 }
 
-func (c *CachedStorage) GetAll(ctx context.Context) ([]models.UrlEntity, error) {
-	urls, err := c.primary.GetAll(ctx)
+func (c *CachedStorage) GetAll(ctx context.Context, ownerID int64) ([]models.UrlEntity, error) {
+	urls, err := c.primary.GetAll(ctx, ownerID)
 	return urls, err
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"niko1ay-pr/url-shrtnr/internal/http-server/middleware/jwtauth"
 	"niko1ay-pr/url-shrtnr/internal/lib/api/response"
 	"niko1ay-pr/url-shrtnr/internal/lib/logger/sl"
 	"niko1ay-pr/url-shrtnr/internal/models"
@@ -17,8 +18,9 @@ type Response struct {
 	Entities []models.UrlEntity
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=URLGetterAll
 type URLGetterAll interface {
-	GetAll(context.Context) ([]models.UrlEntity, error)
+	GetAll(context.Context, int64) ([]models.UrlEntity, error)
 }
 
 func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.HandlerFunc {
@@ -28,7 +30,15 @@ func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())))
 
-		entities, err := urlGetterAll.GetAll(ctx)
+		ownerID := jwtauth.GetUserID(r.Context())
+		if ownerID == 0 {
+			log.Error("owner ID cannot be empty")
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error("failed to decode request body"))
+			return
+		}
+
+		entities, err := urlGetterAll.GetAll(ctx, ownerID)
 		if err != nil {
 			log.Error("failed to get all urls", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)

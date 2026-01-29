@@ -149,11 +149,11 @@ func (s *Storage) UpdateURL(ctx context.Context, alias string, url string, owner
 	return nil
 }
 
-func (s *Storage) GetAll(ctx context.Context) ([]models.UrlEntity, error) {
+func (s *Storage) GetAll(ctx context.Context, ownerID int64) ([]models.UrlEntity, error) {
 	const op = "repository.sqlite.GetAll"
-	query := "SELECT alias, url FROM urls"
+	query := "SELECT alias, url FROM urls WHERE owner_id = ?"
 
-	rows, err := s.db.Query(query)
+	rows, err := s.db.QueryContext(ctx, query, ownerID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
