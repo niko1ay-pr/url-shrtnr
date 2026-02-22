@@ -46,6 +46,10 @@ func main() {
 	defer done()
 
 	storage, err := sqlite.New(ctx, config.StoragePath)
+	if err != nil {
+		log.Error("Error sqlite init: ", sl.Err(err))
+		os.Exit(1)
+	}
 
 	redisStorage, err := redisstore.New(ctx, config.Redis.Address, config.Redis.Password, config.Redis.DB, config.Redis.TTL)
 	if err != nil {

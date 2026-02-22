@@ -23,7 +23,7 @@ func New(ctx context.Context, addr string, password string, dbID int, ttl time.D
 		Password: password,
 		DB:       dbID,
 	})
-	err := db.Ping(context.Background()).Err()
+	err := db.Ping(ctx).Err()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", op, err)
 	}
