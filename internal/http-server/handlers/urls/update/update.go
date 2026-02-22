@@ -30,7 +30,7 @@ type URLUpdater interface {
 	UpdateURL(ctx context.Context, url string, alias string, ownerId int64) error
 }
 
-func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.HandlerFunc {
+func New(log *slog.Logger, urlUpdater URLUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.update.New"
 		log = log.With(slog.String("op", op),
@@ -88,7 +88,7 @@ func New(ctx context.Context, log *slog.Logger, urlUpdater URLUpdater) http.Hand
 		// 	}
 		// }
 
-		err = urlUpdater.UpdateURL(ctx, alias, newURL, ownerID)
+		err = urlUpdater.UpdateURL(r.Context(), alias, newURL, ownerID)
 		if err == repository.ErrAliasNotFound {
 			log.Info("alias not found", slog.String("alias", alias))
 			render.Status(r, http.StatusInternalServerError)

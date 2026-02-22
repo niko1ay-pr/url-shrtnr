@@ -42,6 +42,7 @@ func GetAllTest(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(*testing.T) {
 			t.Parallel()
+
 		})
 	}
 }

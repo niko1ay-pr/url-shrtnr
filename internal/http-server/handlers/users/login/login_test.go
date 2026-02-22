@@ -2,7 +2,6 @@ package login_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -96,7 +95,7 @@ func TestLoginHandler(t *testing.T) {
 			}
 
 			secret := []byte("test-secret")
-			handler := login.New(context.Background(), sldiscard.NewDescardLogger(), loginStorageMock, secret)
+			handler := login.New(sldiscard.NewDescardLogger(), loginStorageMock, secret)
 
 			request, _ := json.Marshal(tc.request)
 			req, err := http.NewRequest("POST", "/users/login", bytes.NewReader(request))

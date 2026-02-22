@@ -44,7 +44,7 @@ type RefreshTokenStorer interface {
 	StoreRefreshToken(context.Context, *models.RefreshToken) error
 }
 
-func New(ctx context.Context, log *slog.Logger, storage RefreshTokenGetStorer, secret []byte) http.HandlerFunc {
+func New(log *slog.Logger, storage RefreshTokenGetStorer, secret []byte) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.users.refresh.New"
 
@@ -70,7 +70,7 @@ func New(ctx context.Context, log *slog.Logger, storage RefreshTokenGetStorer, s
 		}
 
 		// get refresh token from db
-		token, err := storage.GetRefreshToken(ctx, req.Id)
+		token, err := storage.GetRefreshToken(r.Context(), req.Id)
 		if err != nil {
 			log.Error("failed to get refresh token", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)
@@ -103,7 +103,7 @@ func New(ctx context.Context, log *slog.Logger, storage RefreshTokenGetStorer, s
 			return
 		}
 		// store new refresh token in DB
-		err = storage.StoreRefreshToken(ctx, &models.RefreshToken{Id: req.Id, Token: newRefreshToken})
+		err = storage.StoreRefreshToken(r.Context(), &models.RefreshToken{Id: req.Id, Token: newRefreshToken})
 		if err != nil {
 			log.Error("failed to store new refresh token", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)

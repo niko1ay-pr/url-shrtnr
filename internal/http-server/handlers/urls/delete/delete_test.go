@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,10 +61,13 @@ func TestDeleteHandler(t *testing.T) {
 			urlDeleterMock := mocks.NewURLDeleter(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlDeleterMock.On("DeleteURL", context.Background(), tc.alias, tc.ownerID).Return(tc.mockErr).Once()
+				urlDeleterMock.On("DeleteURL", mock.MatchedBy(func(ctx context.Context) bool {
+					userId := jwtauth.GetUserID(ctx)
+					return userId == tc.ownerID
+				}), tc.alias, tc.ownerID).Return(tc.mockErr).Once()
 			}
 
-			handler := deleteurl.New(context.Background(), sldiscard.NewDescardLogger(), urlDeleterMock)
+			handler := deleteurl.New(sldiscard.NewDescardLogger(), urlDeleterMock)
 
 			req, err := http.NewRequest(http.MethodDelete, "/url/{alias}", nil)
 			require.NoError(t, err)

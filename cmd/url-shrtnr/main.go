@@ -62,21 +62,21 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	// public routes
-	router.Post("/users/register", register.New(ctx, log, storage))
-	router.Post("/users/login", login.New(ctx, log, storage, config.JWTSecret))
-	router.Post("/users/refresh", refresh.New(ctx, log, storage, config.JWTSecret))
-	router.Get("/url/{alias}", redirect.New(ctx, log, cachedStorage))
+	router.Post("/users/register", register.New(log, storage))
+	router.Post("/users/login", login.New(log, storage, config.JWTSecret))
+	router.Post("/users/refresh", refresh.New(log, storage, config.JWTSecret))
+	router.Get("/url/{alias}", redirect.New(log, cachedStorage))
 
 	// protected routes
 	router.Group(func(protected chi.Router) {
 		protected.Use(jwtauth.ExtractClaims(config.JWTSecret))
 
 		protected.Route("/url", func(r chi.Router) {
-			r.Delete("/{alias}", delete.New(ctx, log, cachedStorage))
-			r.Post("/", save.New(ctx, log, cachedStorage))
-			r.Put("/{alias}", update.New(ctx, log, cachedStorage))
+			r.Delete("/{alias}", delete.New(log, cachedStorage))
+			r.Post("/", save.New(log, cachedStorage))
+			r.Put("/{alias}", update.New(log, cachedStorage))
 		})
-		protected.Get("/urls", all.New(ctx, log, cachedStorage))
+		protected.Get("/urls", all.New(log, cachedStorage))
 	})
 
 	s := http.Server{

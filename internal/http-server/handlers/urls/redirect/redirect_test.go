@@ -1,7 +1,6 @@
 package redirect_test
 
 import (
-	"context"
 	"net/http/httptest"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/redirect"
 	"niko1ay-pr/url-shrtnr/internal/http-server/handlers/urls/redirect/mocks"
@@ -10,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/go-playground/assert.v1"
 )
@@ -37,11 +37,11 @@ func TestRedirectHandler(t *testing.T) {
 			urlGetterMock := mocks.NewURLGetter(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlGetterMock.On("GetURL", context.Background(), tc.alias).
+				urlGetterMock.On("GetURL", mock.Anything, tc.alias).
 					Return(tc.url, tc.mockErr).Once()
 			}
 
-			handler := redirect.New(context.Background(), sldiscard.NewDescardLogger(), urlGetterMock)
+			handler := redirect.New(sldiscard.NewDescardLogger(), urlGetterMock)
 
 			r := chi.NewRouter()
 			r.Get("/url/{alias}", handler)

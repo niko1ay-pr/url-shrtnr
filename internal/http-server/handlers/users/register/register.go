@@ -30,7 +30,7 @@ type UserSaver interface {
 	UserSave(context.Context, models.User) error
 }
 
-func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
+func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.auth.register.New"
 		log = log.With(slog.String("op", op),
@@ -70,7 +70,7 @@ func New(ctx context.Context, log *slog.Logger, userSaver UserSaver) http.Handle
 			return
 		}
 		//store salt near password
-		err = userSaver.UserSave(ctx, models.User{Email: req.Email,
+		err = userSaver.UserSave(r.Context(), models.User{Email: req.Email,
 			Password: hashedPass, Salt: salt})
 		if err == repository.ErrUserExists {
 			log.Info("already exists", sl.Err(err))

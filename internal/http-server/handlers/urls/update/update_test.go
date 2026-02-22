@@ -100,14 +100,17 @@ func TestUpdateHandler(t *testing.T) {
 			urlUpdaterMock := mocks.NewURLUpdater(t)
 
 			if tc.respErr == "" || tc.mockErr != nil {
-				urlUpdaterMock.On("UpdateURL", context.Background(),
+				urlUpdaterMock.On("UpdateURL", mock.MatchedBy(func(ctx context.Context) bool {
+					userId := jwtauth.GetUserID(ctx)
+					return userId == tc.ownerID
+				}),
 					mock.AnythingOfType("string"),
 					mock.AnythingOfType("string"),
 					mock.AnythingOfType("int64")).
 					Return(tc.mockErr).Once()
 			}
 
-			handler := update.New(context.Background(), sldiscard.NewDescardLogger(), urlUpdaterMock)
+			handler := update.New(sldiscard.NewDescardLogger(), urlUpdaterMock)
 
 			input := fmt.Sprintf(`{"url": "%s"}`, tc.newURL)
 

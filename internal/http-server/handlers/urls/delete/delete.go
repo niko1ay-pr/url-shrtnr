@@ -23,7 +23,7 @@ type URLDeleter interface {
 	DeleteURL(context.Context, string, int64) error
 }
 
-func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
+func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.delete.New"
 
@@ -47,7 +47,7 @@ func New(ctx context.Context, log *slog.Logger, urlDeleter URLDeleter) http.Hand
 
 		log.Info("received alias", slog.String("alias", alias))
 
-		err := urlDeleter.DeleteURL(ctx, alias, ownerID)
+		err := urlDeleter.DeleteURL(r.Context(), alias, ownerID)
 
 		if err == repository.ErrUrlNotFound {
 			log.Info("url not found", slog.String("alias", alias))

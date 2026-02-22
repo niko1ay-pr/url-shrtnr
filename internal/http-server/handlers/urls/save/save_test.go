@@ -127,12 +127,16 @@ func TestSaveHandler(t *testing.T) {
 			var entitiesInput string
 			if tc.respErr == "" || tc.mockErr != nil {
 				for _, ent := range tc.entities {
-					urlSaverMock.On("SaveURL", context.Background(), ent.URL, mock.AnythingOfType("string"), tc.ownerID).
+					urlSaverMock.On("SaveURL", mock.MatchedBy(func(ctx context.Context) bool {
+						userId := jwtauth.GetUserID(ctx)
+						return userId == tc.ownerID
+					}),
+						ent.URL, mock.AnythingOfType("string"), tc.ownerID).
 						Return(tc.mockErr).Once()
 				}
 			}
 
-			handler := save.New(context.Background(), sldiscard.NewDescardLogger(), urlSaverMock)
+			handler := save.New(sldiscard.NewDescardLogger(), urlSaverMock)
 			for n, ent := range tc.entities {
 				entitiesInput = fmt.Sprintf(`%s{"url": "%s","alias":"%s"}`, entitiesInput, ent.URL, ent.Alias)
 				if n < len(tc.entities)-1 {

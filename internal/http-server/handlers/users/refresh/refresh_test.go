@@ -2,7 +2,6 @@ package refresh_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -85,7 +84,7 @@ func TestRefreshHandler(t *testing.T) {
 
 			log := sldiscard.NewDescardLogger()
 			secret := []byte("secret")
-			handler := refresh.New(context.Background(), log, storageMock, secret)
+			handler := refresh.New(log, storageMock, secret)
 
 			request, err := json.Marshal(tc.request)
 			require.NoError(t, err)

@@ -2,7 +2,6 @@ package register_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +69,7 @@ func TestRegisterHandler(t *testing.T) {
 					Return(tc.mockErr).Once()
 			}
 
-			handler := register.New(context.Background(), sldiscard.NewDescardLogger(), userSaverMock)
+			handler := register.New(sldiscard.NewDescardLogger(), userSaverMock)
 			requestBody := map[string]string{
 				"email":    tc.email,
 				"password": tc.password,

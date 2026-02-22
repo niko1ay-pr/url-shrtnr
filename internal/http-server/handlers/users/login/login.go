@@ -44,7 +44,7 @@ type RefreshTokenStorer interface {
 	StoreRefreshToken(context.Context, *models.RefreshToken) error
 }
 
-func New(ctx context.Context, log *slog.Logger, loginStorage LoginStorage, secret []byte) http.HandlerFunc {
+func New(log *slog.Logger, loginStorage LoginStorage, secret []byte) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.users.login.New"
 		log = log.With(slog.String("op", op),
@@ -68,7 +68,7 @@ func New(ctx context.Context, log *slog.Logger, loginStorage LoginStorage, secre
 			return
 		}
 
-		user, err := loginStorage.GetUserHash(ctx, req.Email)
+		user, err := loginStorage.GetUserHash(r.Context(), req.Email)
 		if err != nil {
 			log.Error("failed to login user", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)
@@ -108,7 +108,7 @@ func New(ctx context.Context, log *slog.Logger, loginStorage LoginStorage, secre
 			Id:    user.Id,
 			Token: rtString,
 		}
-		err = loginStorage.StoreRefreshToken(ctx, refreshToken)
+		err = loginStorage.StoreRefreshToken(r.Context(), refreshToken)
 		if err != nil {
 			log.Error("failed to login user", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)

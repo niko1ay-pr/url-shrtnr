@@ -23,7 +23,7 @@ type URLGetterAll interface {
 	GetAll(context.Context, int64) ([]models.UrlEntity, error)
 }
 
-func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.HandlerFunc {
+func New(log *slog.Logger, urlGetterAll URLGetterAll) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.all.New"
 		log = log.With(
@@ -38,7 +38,7 @@ func New(ctx context.Context, log *slog.Logger, urlGetterAll URLGetterAll) http.
 			return
 		}
 
-		entities, err := urlGetterAll.GetAll(ctx, ownerID)
+		entities, err := urlGetterAll.GetAll(r.Context(), ownerID)
 		if err != nil {
 			log.Error("failed to get all urls", sl.Err(err))
 			render.Status(r, http.StatusInternalServerError)

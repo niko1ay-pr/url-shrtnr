@@ -18,7 +18,7 @@ type URLGetter interface {
 	GetURL(ctx context.Context, alias string) (string, error)
 }
 
-func New(ctx context.Context, log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
+func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.redirect.New"
 
@@ -31,7 +31,7 @@ func New(ctx context.Context, log *slog.Logger, urlGetter URLGetter) http.Handle
 			return
 		}
 
-		url, err := urlGetter.GetURL(ctx, alias)
+		url, err := urlGetter.GetURL(r.Context(), alias)
 		if err == repository.ErrUrlNotFound {
 			log.Info("ulr not found", slog.String("alias", alias))
 			render.JSON(w, r, response.Error("url not found"))

@@ -33,7 +33,7 @@ type Response struct {
 	Entities []Entity `json:"entities"`
 }
 
-func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
+func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.save.New"
 		log = log.With(
@@ -81,7 +81,7 @@ func New(ctx context.Context, log *slog.Logger, urlSaver URLSaver) http.HandlerF
 					return
 				}
 			}
-			err = urlSaver.SaveURL(ctx, entity.URL, alias, ownerID)
+			err = urlSaver.SaveURL(r.Context(), entity.URL, alias, ownerID)
 			if err == repository.ErrAliasExists {
 				log.Info("alias already exists", slog.String("alias", alias))
 				render.Status(r, http.StatusInternalServerError)
