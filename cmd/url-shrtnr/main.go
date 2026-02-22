@@ -57,6 +57,7 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(mwlogger.New(log))
+	router.Use(middleware.Timeout(config.Timeout))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.URLFormat)
