@@ -111,9 +111,9 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 				}
 				break
 			}
-			resp.Entities = append(resp.Entities, Entity{Alias: alias, URL: entity.URL})
+			resp.Entities = append(resp.Entities, Entity{Alias: newAlias, URL: entity.URL})
 
-			log.Info("url added", slog.String("url", entity.URL), slog.String("alias", alias))
+			log.Info("url added", slog.String("url", entity.URL), slog.String("alias", newAlias))
 		}
 
 		resp.Response = response.Ok()
