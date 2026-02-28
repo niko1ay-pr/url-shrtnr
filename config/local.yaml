@@ -2,7 +2,7 @@ env: "local" #local, dev, prod
 storage_path: "./storage/storage.db"
 http_server:
   address: "localhost:8080"
-  timeout: 4s
+  timeout: 30s
   idle_timeout: 45s
   user: "admin"
   password: "adminpass"

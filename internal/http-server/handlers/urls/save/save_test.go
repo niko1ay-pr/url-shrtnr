@@ -162,3 +162,84 @@ func TestSaveHandler(t *testing.T) {
 	}
 
 }
+
+func TestSaveHandler_RetryLogic(t *testing.T) {
+	testCases := []struct {
+		name           string
+		alias          string
+		mockErrs       []error
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name:  "success after first try",
+			alias: "",
+			mockErrs: []error{
+				nil,
+			},
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
+		},
+		{
+			name:  "success after second try",
+			alias: "",
+			mockErrs: []error{
+				repository.ErrAliasExists, nil,
+			},
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
+		},
+		{
+			name:  "failure after max retries",
+			alias: "",
+			mockErrs: []error{
+				repository.ErrAliasExists,
+				repository.ErrAliasExists,
+				repository.ErrAliasExists,
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "alias already exists",
+		},
+		{
+			name:  "no retries when alias provided",
+			alias: "testalias",
+			mockErrs: []error{
+				repository.ErrAliasExists,
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "alias already exists",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ownerID := int64(1)
+			testURL := "https://test.com"
+			urlSaverMock := mocks.NewURLSaver(t)
+
+			for _, err := range tc.mockErrs {
+				urlSaverMock.On("SaveURL", mock.Anything, testURL, mock.Anything, ownerID).
+					Return(err).Once()
+			}
+			handler := save.New(sldiscard.NewDescardLogger(), urlSaverMock)
+
+			input := fmt.Sprintf(`{"entities":[{"url": "%s","alias":"%s"}]}`, testURL, tc.alias)
+			req, err := http.NewRequest(http.MethodPost, "/url/save", strings.NewReader(input))
+			ctx := jwtauth.ContextWithUserID(req.Context(), ownerID)
+			req = req.WithContext(ctx)
+			require.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expectedStatus, rr.Code)
+
+			var resp save.Response
+
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+			require.Equal(t, tc.expectedError, resp.Error)
+		})
+	}
+}
